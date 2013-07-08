@@ -47,7 +47,7 @@
 #endif
 #define DEFAULT_HOST_OP_BUFFER_POOL_SIZE	(1*1024)
 #define DEFAULT_FIRMWARE_RESP_RING_DEPTH	(128*4)
-#define FIRMWARE_IP_BUFFER_POOL_SIZE		(128*1024 + 512*1024)
+#define FIRMWARE_IP_BUFFER_POOL_SIZE		(384*1024 + 1024*120)
 
 #define CACHE_LINE_SIZE_SHIFT		6
 #define CACHE_LINE_SIZE			(1 << CACHE_LINE_SIZE_SHIFT)
@@ -58,7 +58,9 @@
 	(((x) + (PAGE_SIZE-1)) & ~(PAGE_SIZE-1))
 
 #ifdef PRINT_DEBUG
+#ifndef HIGH_PERF
 static int32_t total_resp;
+#endif
 #endif
 #ifndef HIGH_PERF
 #ifdef MULTIPLE_RESP_RINGS
@@ -336,11 +338,11 @@ int32_t alloc_ob_mem(fsl_crypto_dev_t *dev, crypto_dev_config_t *config)
 
 	dev->mem[MEM_TYPE_DRIVER].host_p_addr =
 	    __pa(dev->mem[MEM_TYPE_DRIVER].host_v_addr);
-	print_debug("OB Mem address....	:%0x\n",
+	print_debug("OB Mem address....	:%p\n",
 		    dev->mem[MEM_TYPE_DRIVER].host_v_addr);
-	print_debug("OB Mem dma address... :%0x\n",
+	print_debug("OB Mem dma address... :%llx\n",
 		    dev->mem[MEM_TYPE_DRIVER].host_dma_addr);
-	print_debug("OB Mem physical address.. :%0x\n",
+	print_debug("OB Mem physical address.. :%llx\n",
 		    dev->mem[MEM_TYPE_DRIVER].host_p_addr);
 
 	dev->h_mem = dev->mem[MEM_TYPE_DRIVER].host_v_addr;
@@ -370,25 +372,25 @@ int32_t alloc_ob_mem(fsl_crypto_dev_t *dev, crypto_dev_config_t *config)
 	    (dev->mem[MEM_TYPE_DRIVER].host_v_addr + dev->ob_mem.ip_pool);
 
 	print_debug("\n ====== OB MEM POINTERS =======\n");
-	print_debug("\t Hmem			:%0x\n", dev->h_mem);
-	print_debug("\t H HS Mem		:%0x\n", &(dev->h_mem->hs_mem));
-	print_debug("\t Fw resp ring		:%0x\n",
+	print_debug("\t Hmem			:%p\n", dev->h_mem);
+	print_debug("\t H HS Mem		:%p\n", &(dev->h_mem->hs_mem));
+	print_debug("\t Fw resp ring		:%p\n",
 		    dev->h_mem->fw_resp_ring);
-	print_debug("\t Drv resp ring		:%0x\n",
+	print_debug("\t Drv resp ring		:%p\n",
 		    dev->h_mem->drv_resp_ring);
-	print_debug("\t L Idxs mem		:%0x\n",
+	print_debug("\t L Idxs mem		:%p\n",
 		    dev->h_mem->l_idxs_mem);
-	print_debug("\t S C Idxs mem		:%0x\n",
+	print_debug("\t S C Idxs mem		:%p\n",
 		    dev->h_mem->s_c_idxs_mem);
-	print_debug("\t L R cntrs mem		:%0x\n",
+	print_debug("\t L R cntrs mem		:%p\n",
 		    dev->h_mem->l_r_cntrs_mem);
-	print_debug("\t S C R cntrs mem	:%0x\n", dev->h_mem->s_c_r_cntrs_mem);
-	print_debug("\t Cntrs mem		:%0x\n", dev->h_mem->cntrs_mem);
-	print_debug("\t S C cntrs mem		:%0x\n",
+	print_debug("\t S C R cntrs mem	:%p\n", dev->h_mem->s_c_r_cntrs_mem);
+	print_debug("\t Cntrs mem		:%p\n", dev->h_mem->cntrs_mem);
+	print_debug("\t S C cntrs mem		:%p\n",
 		    dev->h_mem->s_c_cntrs_mem);
-	print_debug("\t OP pool			:%0x\n", dev->h_mem->op_pool);
-	print_debug("\t IP pool			:%0x\n", dev->h_mem->ip_pool);
-	print_debug("\t Total req mem size	:%0x\n", dev->tot_req_mem_size);
+	print_debug("\t OP pool			:%p\n", dev->h_mem->op_pool);
+	print_debug("\t IP pool			:%p\n", dev->h_mem->ip_pool);
+	print_debug("\t Total req mem size	:%x\n", dev->tot_req_mem_size);
 
 	return 0;
 
@@ -408,7 +410,7 @@ void init_handshake(fsl_crypto_dev_t *dev)
 
 	dev->h_mem->hs_mem.state = DEFAULT;
 
-	print_debug("C HS mem addr		:%0x\n",
+	print_debug("C HS mem addr		:%p\n",
 		    &(dev->c_hs_mem->h_ob_mem_l));
 	print_debug("Host ob mem addr,	L	:%0x	H	:%0x\n", l_val,
 		    h_val);
@@ -556,20 +558,20 @@ static void send_hs_command(uint8_t cmd, fsl_crypto_dev_t *dev, void *data)
 			    ("\t Req mem size			:%d\n",
 			     dev->tot_req_mem_size);
 			print_debug
-			    ("\t Drv resp ring			:%0x\n",
+			    ("\t Drv resp ring			:%llx\n",
 			     drv_resp_rings);
 			print_debug
-			    ("\t Fw resp ring			:%0x\n",
+			    ("\t Fw resp ring			:%llx\n",
 			     fw_resp_ring);
 			print_debug
-			    ("\t S C Counters			:%0x\n",
+			    ("\t S C Counters			:%llx\n",
 			     s_cntrs);
 			print_debug
-			    ("\t R S C counters			:%0x\n",
+			    ("\t R S C counters			:%llx\n",
 			     r_s_cntrs);
 		}
 		print_debug
-		    ("\t Sending FW_INIT_CONFIG command at addr	:%0x\n",
+		    ("\t Sending FW_INIT_CONFIG command at addr	:%p\n",
 		     &(dev->c_hs_mem->state));
 		ASSIGN8(dev->c_hs_mem->state, FW_INIT_CONFIG);
 		break;
@@ -600,25 +602,25 @@ static void send_hs_command(uint8_t cmd, fsl_crypto_dev_t *dev, void *data)
 
 			print_debug("\n	HS_INIT_RING_PAIR Details\n");
 			print_debug
-			    ("\t Rid					:%d\n",
+			    ("\t Rid				:%d\n",
 			     ring->ring_id);
 			print_debug
-			    ("\t Depth					:%d\n",
+			    ("\t Depth				:%d\n",
 			     ring->depth);
 			print_debug
-			    ("\t MSI Data				:%0x\n",
+			    ("\t MSI Data			:%0x\n",
 			     ring->msi_data);
 			print_debug
-			    ("\t MSI Addr L				:%0x\n",
+			    ("\t MSI Addr L			:%0x\n",
 			     ring->msi_addr_l);
 			print_debug
-			    ("\t MSI Addr H				:%0x\n",
+			    ("\t MSI Addr H			:%0x\n",
 			     ring->msi_addr_h);
 			print_debug
-			    ("\t MSI data				:%0x\n",
+			    ("\t MSI data			:%0x\n",
 			     ring->msi_data);
 			print_debug
-			    ("\t Ring counters addr			:%0x\n",
+			    ("\t Ring counters addr		:%llx\n",
 			     s_r_cntrs);
 
 		}
@@ -789,7 +791,7 @@ int32_t handshake(fsl_crypto_dev_t *dev, crypto_dev_config_t *config)
 					    &(dev->s_mem.
 					      s_r_cntrs[dev->num_of_rings + i]);
 					print_debug
-				    ("\t FW Intrl Ctrl Flag:%0x\n",
+				    ("\t FW Intrl Ctrl Flag:%p\n",
 				     dev->fw_resp_rings[i].intr_ctrl_flag);
 				}
 			}
@@ -797,7 +799,7 @@ int32_t handshake(fsl_crypto_dev_t *dev, crypto_dev_config_t *config)
 			print_debug
 			    ("\n ----- Details from firmware  -------\n");
 			print_debug
-			    ("\t \t SRAM H V ADDR		:%0x\n",
+			    ("\t \t SRAM H V ADDR		:%p\n",
 			     dev->mem[MEM_TYPE_SRAM].host_v_addr);
 			print_debug("\t \t S R CNTRS OFFSET	:%0x\n",
 				    dev->h_mem->hs_mem.data.config.s_r_cntrs);
@@ -807,17 +809,17 @@ int32_t handshake(fsl_crypto_dev_t *dev, crypto_dev_config_t *config)
 			print_debug("\n -----------------------------------\n");
 
 			print_debug
-			    ("\t R S Cntrs				:%0x\n",
+			    ("\t R S Cntrs			:%p\n",
 			     dev->s_mem.s_r_cntrs);
 			print_debug
-			    ("\t S Cntrs				:%0x\n",
+			    ("\t S Cntrs			:%p\n",
 			     dev->s_mem.s_cntrs);
 			print_debug
-			    ("\t FW Pool Dev P addr			:%0x\n",
+			    ("\t FW Pool Dev P addr		:%llx\n",
 			     dev->ip_pool.fw_pool.dev_p_addr);
-			print_debug("\t FW Pool host P addr		:%0x\n",
+			print_debug("\t FW Pool host P addr	:%llx\n",
 				    dev->ip_pool.fw_pool.host_map_p_addr);
-			print_debug("\t FW Pool host V addr		:%0x\n",
+			print_debug("\t FW Pool host V addr	:%p\n",
 				    dev->ip_pool.fw_pool.host_map_v_addr);
 			send_hs_command(HS_INIT_RING_PAIR, dev,
 					&(config->ring[rid]));
@@ -858,10 +860,10 @@ int32_t handshake(fsl_crypto_dev_t *dev, crypto_dev_config_t *config)
 			    ("\t Ring id				:%d\n",
 			     rid);
 			print_debug
-			    ("\t Shadow cntrs				:%0x\n",
+			    ("\t Shadow cntrs				:%p\n",
 			     dev->ring_pairs[rid].shadow_counters);
 			print_debug
-			    ("\t Req r					:%0x\n",
+			    ("\t Req r					:%p\n",
 			     dev->ring_pairs[rid].req_r);
 			if (++rid >= dev->num_of_rings) {
 				send_hs_command(HS_COMPLETE, dev, NULL);
@@ -930,7 +932,7 @@ void init_ip_pool(fsl_crypto_dev_t *dev)
 	dev->ip_pool.drv_map_pool.pool =
 	    reg_mem_pool(dev->h_mem->ip_pool, FIRMWARE_IP_BUFFER_POOL_SIZE);
 	print_debug
-	    ("\t \t Registered Pool Address			:%0x\n",
+	    ("\t \t Registered Pool Address			:%p\n",
 	     dev->ip_pool.drv_map_pool.pool);
 }
 
@@ -983,8 +985,8 @@ static int32_t ring_enqueue(fsl_crypto_dev_t *c_dev, uint32_t jr_id,
 	if (jr_id != 0) {
 		ctx_desc = sec_desc & ~((uint64_t) 0x03);
 		if (ctx_desc < c_dev->mem[MEM_TYPE_DRIVER].dev_p_addr)
-		h_desc = c_dev->ip_pool.fw_pool.host_map_v_addr +
-		    (ctx_desc - c_dev->ip_pool.fw_pool.dev_p_addr);
+			h_desc = c_dev->ip_pool.fw_pool.host_map_v_addr +
+			    (ctx_desc - c_dev->ip_pool.fw_pool.dev_p_addr);
 		else
 			h_desc = c_dev->ip_pool.fw_pool.host_map_v_addr +
 			(ctx_desc - c_dev->mem[MEM_TYPE_DRIVER].dev_p_addr -
@@ -1004,8 +1006,8 @@ static int32_t ring_enqueue(fsl_crypto_dev_t *c_dev, uint32_t jr_id,
 	wi = rp->indexes->w_index;
 
 	print_debug("Enqueuing at the index : %d\n", wi);
-	print_debug("Enqueuing to the req r addr	:%0x\n", rp->req_r);
-	print_debug("Writing at the addr		:%0x\n",
+	print_debug("Enqueuing to the req r addr	:%p\n", rp->req_r);
+	print_debug("Writing at the addr		:%p\n",
 		    &(rp->req_r[wi].sec_desc));
 
 #ifndef P4080_BUILD
@@ -1027,7 +1029,7 @@ static int32_t ring_enqueue(fsl_crypto_dev_t *c_dev, uint32_t jr_id,
 				sizeof(app_req_cnt));
 	}
 #endif
-	print_debug("Ring	:%d	Shadow counter address	%0x\n", jr_id,
+	print_debug("Ring	:%d	Shadow counter address	%p\n", jr_id,
 		    &(rp->shadow_counters->req_jobs_added));
 #ifndef P4080_BUILD
 	ASSIGN32(rp->shadow_counters->req_jobs_added, rp->counters->jobs_added);
@@ -1048,12 +1050,13 @@ void prepare_crypto_cfg_info_string( crypto_dev_config_t *config, uint8_t *cryp_
 	sprintf(ring_str, "rid,dpth,affin,prio,ord\n");
 	strcat(cryp_cfg_str, ring_str);
 	for (i = 0; i < config->num_of_rings; i++) {
-		sprintf(ring_str, " %d,%4d,%d,%d,%d\n", i, config->ring[i].depth,
-			(((config->ring[i].flags) & APP_RING_PROP_AFFINE_MASK) >>
+		sprintf(ring_str, " %d,%4d,%d,%d,%d\n", i,
+			config->ring[i].depth,
+			((config->ring[i].flags & APP_RING_PROP_AFFINE_MASK) >>
 			 APP_RING_PROP_AFFINE_SHIFT),
-			(((config->ring[i].flags) & APP_RING_PROP_PRIO_MASK) >>
+			((config->ring[i].flags & APP_RING_PROP_PRIO_MASK) >>
 			 APP_RING_PROP_PRIO_SHIFT),
-			(((config->ring[i].flags) & APP_RING_PROP_ORDER_MASK) >>
+			((config->ring[i].flags & APP_RING_PROP_ORDER_MASK) >>
 			 APP_RING_PROP_ORDER_SHIFT));
 		strcat(cryp_cfg_str, ring_str);
 	}
@@ -1107,10 +1110,10 @@ void *fsl_crypto_layer_add_device(void *dev, crypto_dev_config_t *config)
 				   DEV_MEM_SIZE - FSL_FIRMWARE_SIZE -
 				   DEVICE_CACHE_LINE_SIZE);
 	print_debug
-	    ("\t IB mem addr					:%0x\n",
+	    ("\t IB mem addr					:%p\n",
 	     c_dev->mem[MEM_TYPE_SRAM].host_v_addr);
 	print_debug
-	    ("\t Device hs mem addr				:%0x\n",
+	    ("\t Device hs mem addr				:%p\n",
 	     c_dev->c_hs_mem);
 
 	print_debug("\t Rearrange rings.....\n");
@@ -1236,18 +1239,19 @@ int32_t cmd_ring_enqueue(fsl_crypto_dev_t *c_dev, uint32_t jr_id,
 
 void handle_response(fsl_crypto_dev_t *dev, uint64_t desc, int32_t res)
 {
-	dma_addr_t *h_desc;
+	void *h_desc;
 	crypto_op_ctx_t *ctx0 = NULL;
-	if (desc < dev->mem[MEM_TYPE_DRIVER].dev_p_addr)
-		h_desc =
-	    dev->ip_pool.drv_map_pool.v_addr + (desc -
-						dev->ip_pool.
-						fw_pool.dev_p_addr);
-	else
+	if (desc < dev->mem[MEM_TYPE_SRAM].dev_p_addr)
 		h_desc =
 		dev->ip_pool.drv_map_pool.v_addr +
-		(desc - dev->mem[MEM_TYPE_DRIVER].dev_p_addr -
+		(u32)(desc - dev->mem[MEM_TYPE_DRIVER].dev_p_addr -
 		dev->ip_pool.drv_map_pool.p_addr);
+	else
+		h_desc =
+	    dev->ip_pool.drv_map_pool.v_addr + (u32)(desc -
+						dev->ip_pool.
+						fw_pool.dev_p_addr);
+
 #ifndef HIGH_PERF
 	crypto_job_ctx_t *ctx1 = NULL;
 
@@ -1265,8 +1269,8 @@ void handle_response(fsl_crypto_dev_t *dev, uint64_t desc, int32_t res)
 						       pool, h_desc);
 	print_debug("Total Resp count: %d\n", ++total_resp);
 	print_debug
-	    ("[DEQ] Dev sec desc :%0llx H sec desc :%0x"
-	     "Ctx0 address :%0x Ctx1 address :%0x\n", desc, h_desc, ctx0, ctx1);
+	    ("[DEQ] Dev sec desc :%0llx H sec desc :%p"
+	     "Ctx0 address :%p Ctx1 address :%p\n", desc, h_desc, ctx0, ctx1);
 #endif
 
 	if (ctx0)
@@ -1390,7 +1394,7 @@ CMD_RING_RESP:
 #endif
 
 		print_debug
-		    ("DEQUEUE RESP AT : %u RESP DESC : %0llx  == [%0lx]",
+		    ("DEQUEUE RESP AT : %u RESP DESC : %0llx  == [%p]",
 		     ri, desc, &(dev->ring_pairs[0].resp_r[ri]));
 
 		if (desc) {

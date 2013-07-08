@@ -493,7 +493,7 @@ typedef struct fsl_crypto_dev {
 	 * This data structure helps in structured access of raw bytes
 	 * in the device memory during the handshake.
 	 */
-	volatile crypto_c_hs_mem_t *c_hs_mem;
+	crypto_c_hs_mem_t *c_hs_mem;
 
 	/* Structure defining the shadow memories on the device which
 	 * needs to be updated by driver */

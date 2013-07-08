@@ -89,10 +89,13 @@ static int32_t self_test_chk_res(uint32_t *output)
 static void rng_init_done(void *ctx, int32_t res)
 {
 	crypto_op_ctx_t *crypto_ctx = ctx;
+	crypto_mem_info_t *mem_info = &crypto_ctx->crypto_mem;
+	rng_init_buffers_t *mem = (rng_init_buffers_t *)(mem_info->buffers);
 
 	print_debug("[RNG INIT DONE ]\n");
 
-	dealloc_crypto_mem(&(crypto_ctx->crypto_mem));
+	free_buffer(crypto_ctx->crypto_mem.pool,
+			mem->desc_buff.v_mem);
 
 	crypto_ctx->req.rng_init->result = res;
 	complete(&crypto_ctx->req.rng_init->completion);
@@ -138,14 +141,21 @@ static int rng_self_test_cp_output(uint32_t *output, uint32_t length,
 static int rng_init_cp_pers_str(uint32_t *pers_str, uint32_t length,
 				crypto_mem_info_t *mem_info)
 {
+	u32 sum_len;
+
 	rng_init_buffers_t *mem = (rng_init_buffers_t *) (mem_info->buffers);
 	rng_init_init_len(length, mem_info);
 
+	sum_len = ALIGN_LEN_TO_DMA(mem->pers_str_buff.len) +
+		ALIGN_LEN_TO_DMA(mem->desc_buff.len);
 	/* Alloc mem requrd for crypto operation */
 	print_debug("\t \t Calling alloc_crypto_mem\n");
-	if (-ENOMEM == alloc_crypto_mem(mem_info))
+	mem->desc_buff.v_mem = alloc_buffer(mem_info->pool, sum_len, 1);
+	if (NULL == mem->desc_buff.v_mem)
 		return -ENOMEM;
-	mem->pers_str_buff.req_ptr = (uint8_t *) pers_str;
+	mem->pers_str_buff.v_mem = mem->desc_buff.v_mem +
+		ALIGN_LEN_TO_DMA(mem->desc_buff.len);
+	memcpy(mem->pers_str_buff.v_mem, pers_str, mem->pers_str_buff.len);
 	return 0;
 }
 
@@ -345,7 +355,7 @@ int rng_op(fsl_crypto_dev_t *c_dev, uint32_t sec_no, rng_ops_t op)
 	}
 
 	crypto_ctx = get_crypto_ctx(c_dev->ctx_pool);
-	print_debug("\t crypto_ctx addr :			:%0llx\n",
+	print_debug("\t crypto_ctx addr :			:%p\n",
 		    crypto_ctx);
 
 	if (unlikely(!crypto_ctx)) {
@@ -358,7 +368,7 @@ int rng_op(fsl_crypto_dev_t *c_dev, uint32_t sec_no, rng_ops_t op)
 	crypto_ctx->ctx_pool = c_dev->ctx_pool;
 	crypto_ctx->crypto_mem.dev = c_dev;
 	crypto_ctx->crypto_mem.pool = c_dev->ring_pairs[r_id].ip_pool;
-	print_debug("\t IP Buffer pool address		:%0x\n",
+	print_debug("\t IP Buffer pool address		:%p\n",
 		    crypto_ctx->crypto_mem.pool);
 
 	switch (op) {
@@ -392,7 +402,7 @@ int rng_op(fsl_crypto_dev_t *c_dev, uint32_t sec_no, rng_ops_t op)
 
 		/* Store the context */
 		print_debug
-		    ("[Enq]Desc addr :%0llx Hbuff addr :%0x Crypto ctx :%0x\n",
+		    ("[Enq]Desc addr :%0llx Hbuff addr :%p Crypto ctx :%p\n",
 		     rng_init_buffs->desc_buff.dev_buffer.d_p_addr,
 		     rng_init_buffs->desc_buff.v_mem, crypto_ctx);
 
@@ -434,7 +444,7 @@ int rng_op(fsl_crypto_dev_t *c_dev, uint32_t sec_no, rng_ops_t op)
 
 		/* Store the context */
 		print_debug
-		    ("[Enq]Desc addr :%0llx Hbuff addr :%0x Crypto ctx :%0x\n",
+		    ("[Enq]Desc addr :%0llx Hbuff addr :%p Crypto ctx :%p\n",
 		     rng_self_test_buffs->desc_buff.dev_buffer.d_p_addr,
 		     rng_self_test_buffs->desc_buff.v_mem, crypto_ctx);
 
@@ -448,7 +458,6 @@ int rng_op(fsl_crypto_dev_t *c_dev, uint32_t sec_no, rng_ops_t op)
 		break;
 	}
 
-	memcpy_to_dev(&crypto_ctx->crypto_mem);
 
 	crypto_ctx->req.rng_init = &r_init;
 	crypto_ctx->rid = r_id;
@@ -487,7 +496,8 @@ int rng_op(fsl_crypto_dev_t *c_dev, uint32_t sec_no, rng_ops_t op)
 error:
 	if (crypto_ctx) {
 		if (crypto_ctx->crypto_mem.buffers)
-			dealloc_crypto_mem(&crypto_ctx->crypto_mem);
+			free_buffer(crypto_ctx->crypto_mem.pool,
+					rng_init_buffs->desc_buff.v_mem);
 
 		free_crypto_ctx(c_dev->ctx_pool, crypto_ctx);
 	}
@@ -502,6 +512,8 @@ int32_t rng_instantiation(fsl_crypto_dev_t *c_dev)
 	no_of_secs = c_dev->h_mem->hs_mem.data.device.no_secs;
 
 	for (i = 1; i <= no_of_secs; i++) {
+		rng_op(c_dev, i, 0);
+#if 0
 		ret = rng_op(c_dev, i, 1);
 		if (!ret) {
 			rng_op(c_dev, i, 0);
@@ -509,6 +521,7 @@ int32_t rng_instantiation(fsl_crypto_dev_t *c_dev)
 				break;
 		} else
 			break;
+#endif
 	}
 	return ret;
 }

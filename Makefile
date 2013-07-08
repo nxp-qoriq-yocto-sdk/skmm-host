@@ -118,6 +118,7 @@ ifeq ($(USE_HOST_DMA),y)
 $(DRIVER_KOBJ)-objs += host_driver/dma.o
 endif
 $(DRIVER_KOBJ)-objs += algs/algs.o
+$(DRIVER_KOBJ)-objs += algs/abs_req.o
 $(DRIVER_KOBJ)-objs += algs/rsa.o
 $(DRIVER_KOBJ)-objs += algs/dsa.o
 $(DRIVER_KOBJ)-objs += algs/dh.o

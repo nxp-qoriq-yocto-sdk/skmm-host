@@ -68,18 +68,18 @@ void init_1k_rsa_pub_op_req(void)
 	g_1kpubopreq.req_u.rsa_pub_req.n = kzalloc(pub_n_len, GFP_KERNEL);
 	g_1kpubopreq.req_u.rsa_pub_req.n_len = (pub_n_len);
 	pub_1k_n = __pa(g_1kpubopreq.req_u.rsa_pub_req.n);
-	memcpy(g_1kpubopreq.req_u.rsa_pub_req.n ,PUB_N_1024, pub_n_len);
+	memcpy(g_1kpubopreq.req_u.rsa_pub_req.n, PUB_N_1024, pub_n_len);
 
 	g_1kpubopreq.req_u.rsa_pub_req.e = kzalloc(ALIGN_LEN_TO_DMA(pub_e_len),
 								GFP_KERNEL);
 	g_1kpubopreq.req_u.rsa_pub_req.e_len = (pub_e_len);
 	pub_1k_e = __pa(g_1kpubopreq.req_u.rsa_pub_req.e);
-	memcpy(g_1kpubopreq.req_u.rsa_pub_req.e ,PUB_E_1024, pub_e_len);
+	memcpy(g_1kpubopreq.req_u.rsa_pub_req.e, PUB_E_1024, pub_e_len);
 
 	g_1kpubopreq.req_u.rsa_pub_req.f = kzalloc(pub_f_len, GFP_KERNEL);
 	g_1kpubopreq.req_u.rsa_pub_req.f_len = (pub_f_len);
 	pub_1k_f = __pa(g_1kpubopreq.req_u.rsa_pub_req.f);
-	memcpy(g_1kpubopreq.req_u.rsa_pub_req.f ,PUB_F_1024, pub_f_len);
+	memcpy(g_1kpubopreq.req_u.rsa_pub_req.f, PUB_F_1024, pub_f_len);
 
 	g_1kpubopreq.req_u.rsa_pub_req.g =
 	    kzalloc(pub_n_len, GFP_KERNEL | GFP_DMA);
@@ -93,18 +93,18 @@ void init_2k_rsa_pub_op_req(void)
 	g_2kpubopreq.req_u.rsa_pub_req.n = kzalloc(n_2048, GFP_KERNEL);
 	g_2kpubopreq.req_u.rsa_pub_req.n_len = (n_2048);
 	pub_2k_n = __pa(g_2kpubopreq.req_u.rsa_pub_req.n);
-	memcpy(g_2kpubopreq.req_u.rsa_pub_req.n ,N_2048, n_2048);
+	memcpy(g_2kpubopreq.req_u.rsa_pub_req.n, N_2048, n_2048);
 
 	g_2kpubopreq.req_u.rsa_pub_req.e = kzalloc(ALIGN_LEN_TO_DMA(e_2048),
 								GFP_KERNEL);
 	g_2kpubopreq.req_u.rsa_pub_req.e_len = (e_2048);
 	pub_2k_e = __pa(g_2kpubopreq.req_u.rsa_pub_req.e);
-	memcpy(g_2kpubopreq.req_u.rsa_pub_req.e ,E_2048, e_2048);
+	memcpy(g_2kpubopreq.req_u.rsa_pub_req.e, E_2048, e_2048);
 
 	g_2kpubopreq.req_u.rsa_pub_req.f = kzalloc(f_2048, GFP_KERNEL);
 	g_2kpubopreq.req_u.rsa_pub_req.f_len = (f_2048);
 	pub_2k_f = __pa(g_2kpubopreq.req_u.rsa_pub_req.f);
-	memcpy(g_2kpubopreq.req_u.rsa_pub_req.f ,F_2048, f_2048);
+	memcpy(g_2kpubopreq.req_u.rsa_pub_req.f, F_2048, f_2048);
 
 	g_2kpubopreq.req_u.rsa_pub_req.g =
 	    kzalloc(n_2048, GFP_KERNEL | GFP_DMA);
@@ -118,18 +118,18 @@ void init_4k_rsa_pub_op_req(void)
 	g_4kpubopreq.req_u.rsa_pub_req.n = kzalloc(n_4096, GFP_KERNEL);
 	g_4kpubopreq.req_u.rsa_pub_req.n_len = (n_4096);
 	pub_4k_n = __pa(g_4kpubopreq.req_u.rsa_pub_req.n);
-	memcpy(g_4kpubopreq.req_u.rsa_pub_req.n ,N_4096, n_4096);
+	memcpy(g_4kpubopreq.req_u.rsa_pub_req.n, N_4096, n_4096);
 
 	g_4kpubopreq.req_u.rsa_pub_req.e = kzalloc(ALIGN_LEN_TO_DMA(e_4096),
 								GFP_KERNEL);
 	g_4kpubopreq.req_u.rsa_pub_req.e_len = (e_4096);
 	pub_4k_e = __pa(g_4kpubopreq.req_u.rsa_pub_req.e);
-	memcpy(g_4kpubopreq.req_u.rsa_pub_req.e ,E_4096, e_4096);
+	memcpy(g_4kpubopreq.req_u.rsa_pub_req.e, E_4096, e_4096);
 
 	g_4kpubopreq.req_u.rsa_pub_req.f = kzalloc(f_4096, GFP_KERNEL);
 	g_4kpubopreq.req_u.rsa_pub_req.f_len = (f_4096);
 	pub_4k_f = __pa(g_4kpubopreq.req_u.rsa_pub_req.f);
-	memcpy(g_4kpubopreq.req_u.rsa_pub_req.f ,F_4096, f_4096);
+	memcpy(g_4kpubopreq.req_u.rsa_pub_req.f, F_4096, f_4096);
 
 	g_4kpubopreq.req_u.rsa_pub_req.g =
 	    kzalloc(n_4096, GFP_KERNEL | GFP_DMA);
@@ -256,18 +256,12 @@ void init_4k_rsa_prv3_op_req(void)
 
 void cleanup_rsa_test(void)
 {
-	if(g_1kpubopreq.req_u.rsa_pub_req.g)
-		kfree(g_1kpubopreq.req_u.rsa_pub_req.g);
-	if(g_2kpubopreq.req_u.rsa_pub_req.g)
-		kfree(g_2kpubopreq.req_u.rsa_pub_req.g);
-	if(g_4kpubopreq.req_u.rsa_pub_req.g)
-		kfree(g_4kpubopreq.req_u.rsa_pub_req.g);
-	if(g_1kprv3opreq.req_u.rsa_priv_f3.f)
-		kfree(g_1kprv3opreq.req_u.rsa_priv_f3.f);
-	if(g_2kprv3opreq.req_u.rsa_priv_f3.f)
-		kfree(g_2kprv3opreq.req_u.rsa_priv_f3.f);
-	if(g_4kprv3opreq.req_u.rsa_priv_f3.f)
-		kfree(g_4kprv3opreq.req_u.rsa_priv_f3.f);
+	kfree(g_1kpubopreq.req_u.rsa_pub_req.g);
+	kfree(g_2kpubopreq.req_u.rsa_pub_req.g);
+	kfree(g_4kpubopreq.req_u.rsa_pub_req.g);
+	kfree(g_1kprv3opreq.req_u.rsa_priv_f3.f);
+	kfree(g_2kprv3opreq.req_u.rsa_priv_f3.f);
+	kfree(g_4kprv3opreq.req_u.rsa_priv_f3.f);
 
 	kfree(g_1kpubopreq.req_u.rsa_pub_req.n);
 	kfree(g_1kpubopreq.req_u.rsa_pub_req.e);

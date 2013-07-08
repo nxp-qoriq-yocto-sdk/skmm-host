@@ -57,6 +57,7 @@
 #include "dsa.h"
 #include "dh.h"
 #include "error.h"
+#include "abs_req.h"
 
 /* extern struct instantiate_result; */
 /* Enum identifying the type of operation :- Symmetric/Asymmetric */

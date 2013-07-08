@@ -67,7 +67,6 @@ struct buffer_info {
 typedef struct buffer_info buffer_info_t;
 
 typedef struct rsa_pub_op_buffers {
-	buffer_info_t desc_buff;
 	buffer_info_t n_buff;
 	buffer_info_t e_buff;
 	buffer_info_t f_buff;
@@ -94,20 +93,11 @@ typedef struct rsa_priv2_op_buffers {
 } rsa_priv2_op_buffers_t;
 
 typedef struct rsa_priv3_op_buffers {
-	buffer_info_t desc_buff;
-	buffer_info_t p_buff;
-	buffer_info_t q_buff;
-	buffer_info_t dp_buff;
-	buffer_info_t dq_buff;
 	buffer_info_t f_buff;
 	buffer_info_t g_buff;
-	buffer_info_t c_buff;
-	buffer_info_t tmp1_buff;
-	buffer_info_t tmp2_buff;
 } rsa_priv3_op_buffers_t;
 
 typedef struct dsa_sign_buffers {
-	buffer_info_t desc_buff;
 	buffer_info_t q_buff;
 	buffer_info_t r_buff;
 	buffer_info_t g_buff;
@@ -120,7 +110,6 @@ typedef struct dsa_sign_buffers {
 } dsa_sign_buffers_t;
 
 typedef struct dsa_verify_buffers {
-	buffer_info_t desc_buff;
 	buffer_info_t q_buff;
 	buffer_info_t r_buff;
 	buffer_info_t g_buff;
@@ -231,6 +220,8 @@ typedef struct crypto_mem_info {
 	void *src_buff;
 	dma_addr_t dest_buff_dma;
 	buffer_info_t *buffers;
+	void *abs_req;
+	dma_addr_t abs_p_h_map_addr;
 	void *pool;
 	void *dev;
 	crypto_buffers_t c_buffers;

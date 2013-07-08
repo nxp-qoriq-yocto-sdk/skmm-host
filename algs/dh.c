@@ -501,7 +501,7 @@ int dh_op(struct pkc_request *req)
     }
 
 	crypto_ctx = get_crypto_ctx(c_dev->ctx_pool);
-	print_debug("\t crypto_ctx addr :			:%0llx\n",
+	print_debug("\t crypto_ctx addr :			:%p\n",
 		    crypto_ctx);
 
 	if (unlikely(!crypto_ctx)) {
@@ -514,7 +514,7 @@ int dh_op(struct pkc_request *req)
 	crypto_ctx->ctx_pool = c_dev->ctx_pool;
 	crypto_ctx->crypto_mem.dev = c_dev;
 	crypto_ctx->crypto_mem.pool = c_dev->ring_pairs[r_id].ip_pool;
-	print_debug("\t IP Buffer pool address		:%0x\n",
+	print_debug("\t IP Buffer pool address		:%p\n",
 		    crypto_ctx->crypto_mem.pool);
 
 	if (ECDH_COMPUTE_KEY == req->type || ECDH_KEYGEN == req->type) {
@@ -551,9 +551,10 @@ int dh_op(struct pkc_request *req)
             sec_dma =   dh_keygen_buffs->desc_buff.dev_buffer.d_p_addr;
 
             /* Store the context */
-            print_debug(KERN_ERR "[Enq] Desc addr   :%0llx Hbuffer addr     :%0x    Crypto ctx      :%0x \n",
-                                                dh_keygen_buffs->desc_buff.dev_buffer.d_p_addr,
-                                                dh_keygen_buffs->desc_buff.v_mem, crypto_ctx);
+		print_debug(KERN_ERR "[Enq] Desc addr   :%0llx Hbuffer addr    "
+				":%p    Crypto ctx      :%p \n",
+				dh_keygen_buffs->desc_buff.dev_buffer.d_p_addr,
+				dh_keygen_buffs->desc_buff.v_mem, crypto_ctx);
 
             store_priv_data(crypto_ctx->crypto_mem.pool, dh_keygen_buffs->desc_buff.v_mem, (unsigned long)crypto_ctx);
 
@@ -589,7 +590,7 @@ int dh_op(struct pkc_request *req)
 
 		/* Store the context */
 		print_debug(KERN_ERR
-			    "[Enq] Desc addr :%0llx Hbuffer addr :%0x	Crypto ctx :%0x\n",
+			    "[Enq] Desc addr :%0llx Hbuffer addr :%p	Crypto ctx :%p\n",
 			    dh_key_buffs->desc_buff.dev_buffer.d_p_addr,
 			    dh_key_buffs->desc_buff.v_mem, crypto_ctx);
 

@@ -210,7 +210,7 @@ static void dec_count(void)
 
 void ecdsa_keygen_done(struct pkc_request *req, int32_t sec_result)
 {
-	print_debug(KERN_ERR "%s( ): req:%0x, sec_result:%0x \n", __func__,
+	print_debug(KERN_ERR "%s( ): req:%p, sec_result:%0x \n", __func__,
 		    req, sec_result);
 	complete(&keygen_control_completion_var);
 }
@@ -257,27 +257,36 @@ void init_ecdsa_verify_test(void)
 {
 	g_ecdsaverifyreq.type = ECDSA_VERIFY;
 
-	g_ecdsaverifyreq.req_u.dsa_verify.q = Q;
+	g_ecdsaverifyreq.req_u.dsa_verify.q = kzalloc(q_len, GFP_KERNEL);
+	memcpy(g_ecdsaverifyreq.req_u.dsa_verify.q, Q, q_len);
 	g_ecdsaverifyreq.req_u.dsa_verify.q_len = (q_len);
 
-	g_ecdsaverifyreq.req_u.dsa_verify.r = R;
+	g_ecdsaverifyreq.req_u.dsa_verify.r = kzalloc(r_len, GFP_KERNEL);
+	memcpy(g_ecdsaverifyreq.req_u.dsa_verify.r, R, r_len);
 	g_ecdsaverifyreq.req_u.dsa_verify.r_len = (r_len);
 
-	g_ecdsaverifyreq.req_u.dsa_verify.ab = AB;
+	g_ecdsaverifyreq.req_u.dsa_verify.ab = kzalloc(ab_len, GFP_KERNEL);
+	memcpy(g_ecdsaverifyreq.req_u.dsa_verify.ab, AB, ab_len);
 	g_ecdsaverifyreq.req_u.dsa_verify.ab_len = (ab_len);
 
-	g_ecdsaverifyreq.req_u.dsa_verify.g = G;
+	g_ecdsaverifyreq.req_u.dsa_verify.g = kzalloc(g_len, GFP_KERNEL);
+	memcpy(g_ecdsaverifyreq.req_u.dsa_verify.g, G, g_len);
 	g_ecdsaverifyreq.req_u.dsa_verify.g_len = (g_len);
 
-	g_ecdsaverifyreq.req_u.dsa_verify.pub_key = PUB_KEY;
+	g_ecdsaverifyreq.req_u.dsa_verify.pub_key = kzalloc(pub_key_len,
+							GFP_KERNEL);
+	memcpy(g_ecdsaverifyreq.req_u.dsa_verify.pub_key, PUB_KEY, pub_key_len);
 	g_ecdsaverifyreq.req_u.dsa_verify.pub_key_len = (pub_key_len);
 
-	g_ecdsaverifyreq.req_u.dsa_verify.m = M;
+	g_ecdsaverifyreq.req_u.dsa_verify.m = kzalloc(m_len, GFP_KERNEL);
+	memcpy(g_ecdsaverifyreq.req_u.dsa_verify.m, M, m_len);
 	g_ecdsaverifyreq.req_u.dsa_verify.m_len = (m_len);
 
-	g_ecdsaverifyreq.req_u.dsa_verify.c = C;
+	g_ecdsaverifyreq.req_u.dsa_verify.c = kzalloc(sizeof(C), GFP_KERNEL);
+	memcpy(g_ecdsaverifyreq.req_u.dsa_verify.c, C, sizeof(C));
 
-	g_ecdsaverifyreq.req_u.dsa_verify.d = D;
+	g_ecdsaverifyreq.req_u.dsa_verify.d = kzalloc(sizeof(D), GFP_KERNEL);
+	memcpy(g_ecdsaverifyreq.req_u.dsa_verify.d, D, d_len);
 	g_ecdsaverifyreq.req_u.dsa_verify.d_len = d_len;
 }
 
@@ -285,22 +294,12 @@ void init_ecdsa_sign_test(void)
 {
 	g_ecdsasignreq.type = ECDSA_SIGN;
 
-	g_ecdsasignreq.req_u.dsa_sign.q = Q;
-	g_ecdsasignreq.req_u.dsa_sign.q_len = (q_len);
-
-	g_ecdsasignreq.req_u.dsa_sign.r = R;
-	g_ecdsasignreq.req_u.dsa_sign.r_len = (r_len);
-
-	g_ecdsasignreq.req_u.dsa_sign.ab = AB;
+	g_ecdsasignreq.req_u.dsa_sign.ab = kzalloc(ab_len, GFP_KERNEL);
+	memcpy(g_ecdsasignreq.req_u.dsa_sign.ab, AB, ab_len);
 	g_ecdsasignreq.req_u.dsa_sign.ab_len = (ab_len);
 
-	g_ecdsasignreq.req_u.dsa_sign.g = G;
-	g_ecdsasignreq.req_u.dsa_sign.g_len = (g_len);
-
-	g_ecdsasignreq.req_u.dsa_sign.priv_key = PRIV_KEY;
-	g_ecdsasignreq.req_u.dsa_sign.priv_key_len = (priv_key_len);
-
-	g_ecdsasignreq.req_u.dsa_sign.m = M;
+	g_ecdsasignreq.req_u.dsa_sign.m = kzalloc(m_len, GFP_KERNEL);
+	memcpy(g_ecdsasignreq.req_u.dsa_sign.m, M, m_len);
 	g_ecdsasignreq.req_u.dsa_sign.m_len = (m_len);
 
 	g_ecdsasignreq.req_u.dsa_sign.c = kzalloc(d_len, GFP_KERNEL | GFP_DMA);
@@ -311,10 +310,19 @@ void init_ecdsa_sign_test(void)
 
 void cleanup_ecdsa_test(void)
 {
-	if(g_ecdsasignreq.req_u.dsa_sign.c)
-		kfree(g_ecdsasignreq.req_u.dsa_sign.c);
-	if(g_ecdsasignreq.req_u.dsa_sign.d)
-		kfree(g_ecdsasignreq.req_u.dsa_sign.d);
+	kfree(g_ecdsasignreq.req_u.dsa_sign.ab);
+	kfree(g_ecdsasignreq.req_u.dsa_sign.m);
+	kfree(g_ecdsasignreq.req_u.dsa_sign.c);
+	kfree(g_ecdsasignreq.req_u.dsa_sign.d);
+
+
+	kfree(g_ecdsaverifyreq.req_u.dsa_verify.q);
+	kfree(g_ecdsaverifyreq.req_u.dsa_verify.r);
+	kfree(g_ecdsaverifyreq.req_u.dsa_verify.g);
+	kfree(g_ecdsaverifyreq.req_u.dsa_verify.pub_key);
+	kfree(g_ecdsaverifyreq.req_u.dsa_verify.c);
+	kfree(g_ecdsaverifyreq.req_u.dsa_verify.d);
+	kfree(g_ecdsaverifyreq.req_u.dsa_verify.ab);
 }
 
 int ecdsa_verify_test(void)

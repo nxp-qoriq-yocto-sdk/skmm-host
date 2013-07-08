@@ -1228,7 +1228,7 @@ static int32_t fsl_crypto_pci_probe(struct pci_dev *dev,
 			goto error;
 		}
 
-		DEV_PRINT_DEBUG("Physical address of BAR : %d is %0x\n", i,
+		DEV_PRINT_DEBUG("Physical address of BAR : %d is %llx\n", i,
 				fsl_pci_dev->bars[i].phy_addr);
 
 		fsl_pci_dev->bars[i].len = pci_resource_len(dev, i);
@@ -1254,7 +1254,7 @@ static int32_t fsl_crypto_pci_probe(struct pci_dev *dev,
 			ret = -ENOMEM;
 			goto error;
 		}
-		DEV_PRINT_DEBUG("Bar:%d virtual address [%0x] Length [%0x]\n",
+		DEV_PRINT_DEBUG("Bar:%d virtual address [%p] Length [%0lx]\n",
 				i, fsl_pci_dev->bars[i].v_addr,
 				fsl_pci_dev->bars[i].len);
 		/* We will not be using DMA from RC or DMA from EP.
@@ -1725,11 +1725,11 @@ static void create_default_config(crypto_dev_config_t *config,
 		/* DEFAULT ORDER 0 */
 		config->ring[from_ring].flags |=
 		    (uint8_t) (0) << APP_RING_PROP_ORDER_SHIFT;
-		print_debug("Ring [%d] default Depth : %d\n",
+		print_debug("Ring [%d] default Depth : %d\n", from_ring,
 			    config->ring[from_ring].depth);
-		print_debug("Ring [%d] default Affinity : 0\n");
-		print_debug("Ring [%d] default Priority : 1\n");
-		print_debug("Ring [%d] default Order : 0\n");
+		print_debug("Ring [%d] default Affinity : 0\n", from_ring);
+		print_debug("Ring [%d] default Priority : 1\n", from_ring);
+		print_debug("Ring [%d] default Order : 0\n", from_ring);
 
 	}
 	config->num_of_rings = max_ring;
@@ -2191,7 +2191,7 @@ static int32_t __init fsl_crypto_drv_init(void)
 		if (-1 == dev_cursor->dev_status) {
 			print_error("\n Dev no [%d] failed\n", dev_cursor->dev_no);
 			print_debug("**** RESETTING THE DEVICE ****\n");
-			print_debug("BAR0 V ADDR    :%0x\n",
+			print_debug("BAR0 V ADDR    :%p\n",
 					dev_cursor->bars[PCI_BAR_NUM_0].v_addr);
 
 			FSL_DEVICE_WRITE32_BAR0_REG(dev_cursor->bars[PCI_BAR_NUM_0].
@@ -2330,13 +2330,14 @@ static void __exit fsl_crypto_drv_exit(void)
 
 	list_for_each_entry(dev_cursor, &pci_dev_list, list) {
 		print_debug("**** RESETTING THE DEVICE ****\n");
-		print_debug("BAR0 V ADDR	:%0x\n",
+		print_debug("BAR0 V ADDR	:%p\n",
 			    dev_cursor->bars[PCI_BAR_NUM_0].v_addr);
 		/* FSL_DEVICE_WRITE32_BAR0_REG(dev_cursor->bars[PCI_BAR_NUM_0].
 		   v_addr, 0x0e00b0, 0x2); */
-		FSL_DEVICE_WRITE32_BAR0_REG(dev_cursor->
+		/*FSL_DEVICE_WRITE32_BAR0_REG(dev_cursor->
 					    bars[PCI_BAR_NUM_0].v_addr, PIC_PIR,
 					    0x1);
+		*/
 		smp_wmb();
 	}
 #ifdef USE_HOST_DMA

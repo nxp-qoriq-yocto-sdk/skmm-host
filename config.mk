@@ -6,7 +6,7 @@ C293_EP=y
 
 #Controls the debug print level
 DEBUG_PRINT=n
-ERROR_PRINT=n
+ERROR_PRINT=y
 INFO_PRINT=n
 
 #Enable HASH/SYMMETRIC offloading

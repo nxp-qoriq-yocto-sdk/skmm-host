@@ -71,11 +71,11 @@ void process_cmd_response(fsl_crypto_dev_t *c_dev, dev_dma_addr_t desc,
 
 	cmd_ring_entry_desc_t *cmd_desc = NULL;
 
-	print_debug("h_desc %0llx\n", h_desc);
+	print_debug("h_desc %p\n", h_desc);
 	print_debug("Desc : %0llx, Result : %0x\n", desc, result);
 
 	cmd_desc = (cmd_ring_entry_desc_t *) h_desc;
-	print_debug("cmd_desc : %0x\n", cmd_desc);
+	print_debug("cmd_desc : %p\n", cmd_desc);
 
 	print_debug("cmd_desc->cmd_op                      :%0llx\n",
 		    cmd_desc->cmd_op);
@@ -93,7 +93,7 @@ void process_cmd_response(fsl_crypto_dev_t *c_dev, dev_dma_addr_t desc,
 		return;
 	}
 
-	print_debug("DEV_P_ADDR:%0llx   HOST_V_ADDR:%0llx\n",
+	print_debug("DEV_P_ADDR:%0llx   HOST_V_ADDR:%p\n",
 		    c_dev->mem[MEM_TYPE_DRIVER].dev_p_addr,
 		    c_dev->mem[MEM_TYPE_DRIVER].host_v_addr);
 
@@ -108,7 +108,7 @@ void process_cmd_response(fsl_crypto_dev_t *c_dev, dev_dma_addr_t desc,
 	op_mem =
 	    (cmd_op_t *) (c_dev->mem[MEM_TYPE_DRIVER].host_v_addr +
 			  (unsigned long)op_buf_addr);
-	print_debug("Buffer virtual address               :%0llx\n", op_mem);
+	print_debug("Buffer virtual address               :%p\n", op_mem);
 
 	op_mem =
 	    (cmd_op_t *) ((unsigned long)op_mem - sizeof(cmd_trace_ctx_t *));
@@ -116,7 +116,7 @@ void process_cmd_response(fsl_crypto_dev_t *c_dev, dev_dma_addr_t desc,
 		    op_mem->cmd_ctx->cmd_type);
 
 	print_debug
-	    ("JOB COMPLETED, op_mem: %0x, cmd_ctx :%0x, cmd_compltn: %0x\n",
+	    ("JOB COMPLETED, op_mem: %p, cmd_ctx :%p, cmd_compltn: %p\n",
 	     op_mem, op_mem->cmd_ctx, &(op_mem->cmd_ctx->cmd_completion));
 	if (op_mem->cmd_ctx) {
 		op_mem->cmd_ctx->result = result;
@@ -582,7 +582,7 @@ static cmd_op_t *get_cmd_op_ctx(fsl_crypto_dev_t *c_dev,
 	cmd_op_t *cmd_op = NULL;
 	dev_dma_addr_t op_dev_addr = 0;
 
-	print_debug("c_dev->op_pool.pool : %0llx, %0x\n", c_dev->op_pool.pool,
+	print_debug("c_dev->op_pool.pool : %p, %p\n", c_dev->op_pool.pool,
 		    c_dev->op_pool.pool);
 	cmd_op =
 	    (cmd_op_t *) cmd_get_op_buffer(c_dev->op_pool.pool,
@@ -592,24 +592,24 @@ static cmd_op_t *get_cmd_op_ctx(fsl_crypto_dev_t *c_dev,
 		goto error;
 	}
 
-	print_debug("get_cmd_op_ctx: cmd_op adr : %0llx, %0x\n", cmd_op,
+	print_debug("get_cmd_op_ctx: cmd_op adr : %p, %p\n", cmd_op,
 		    cmd_op);
 	cmd_op->cmd_ctx = kzalloc(sizeof(cmd_trace_ctx_t), GFP_KERNEL);
 	if (NULL == cmd_op->cmd_ctx) {
 		print_error("Ctx buffer alloc failed !!!!\n");
 		goto error;
 	}
-	print_debug("CMD CTX:%0llx\n", cmd_op->cmd_ctx);
+	print_debug("CMD CTX:%p\n", cmd_op->cmd_ctx);
 
 	init_completion(&(cmd_op->cmd_ctx->cmd_completion));
 
-	print_debug("host_p_addr: %0llx, %0x\n",
+	print_debug("host_p_addr: %0llx, %0llx\n",
 		    c_dev->mem[MEM_TYPE_DRIVER].host_p_addr,
 		    c_dev->mem[MEM_TYPE_DRIVER].host_p_addr);
-	print_debug("host_v_addr: %0llx, %0x\n",
+	print_debug("host_v_addr: %p, %p\n",
 		    c_dev->mem[MEM_TYPE_DRIVER].host_v_addr,
 		    c_dev->mem[MEM_TYPE_DRIVER].host_v_addr);
-	print_debug("get_cmd_op_ctx: cmd_op adr : %0llx, %0x\n", cmd_op,
+	print_debug("get_cmd_op_ctx: cmd_op adr : %p, %p\n", cmd_op,
 		    cmd_op);
 	print_debug("cmd_trace_ctx_t size : %d\n", sizeof(cmd_trace_ctx_t *));
 
@@ -701,9 +701,9 @@ int32_t send_command_to_fw(fsl_crypto_dev_t *c_dev, commands_t command,
 		}
 	}
 
-	print_debug("pci_cmd_desc :  %0x, %0llx\n", (unsigned long)pci_cmd_desc,
+	print_debug("pci_cmd_desc :  %0lx, %0lx\n", (unsigned long)pci_cmd_desc,
 		    (unsigned long)pci_cmd_desc);
-	print_debug("host_v_addr :  %0x, %0llx\n",
+	print_debug("host_v_addr :  %lx, %lx\n",
 		    (unsigned long)c_dev->mem[MEM_TYPE_SRAM].host_v_addr,
 		    (unsigned long)c_dev->mem[MEM_TYPE_SRAM].host_v_addr);
 
@@ -712,9 +712,9 @@ int32_t send_command_to_fw(fsl_crypto_dev_t *c_dev, commands_t command,
 			      (unsigned long)c_dev->mem[MEM_TYPE_SRAM].
 			      host_v_addr);
 
-	print_debug("desc_dev_addr : %0x, %0llx\n", desc_dev_addr,
+	print_debug("desc_dev_addr : %0llx, %0llx\n", desc_dev_addr,
 		    desc_dev_addr);
-	print_debug("dev_p_addr : %0x, %0llx\n",
+	print_debug("dev_p_addr : %0llx, %0llx\n",
 		    c_dev->mem[MEM_TYPE_SRAM].dev_p_addr,
 		    c_dev->mem[MEM_TYPE_SRAM].dev_p_addr);
 
@@ -745,7 +745,7 @@ int32_t send_command_to_fw(fsl_crypto_dev_t *c_dev, commands_t command,
 	}
 
 	print_debug
-	    ("Going to wait for response for command.. %d, cmd_op : %0x\n",
+	    ("Going to wait for response for command.. %d, cmd_op : %p\n",
 	     command, cmd_op);
 	if (-1 == wait_for_cmd_response(cmd_op)) {
 		print_debug

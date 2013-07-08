@@ -100,7 +100,7 @@ void *create_pool(void *buf, uint32_t len)
 
 	print_debug("\n Creating Pool\n");
 
-	print_debug("\t Buffer  :%0x\n", buf);
+	print_debug("\t Buffer  :%p\n", buf);
 	print_debug("\t Len     :%d\n", len);
 
 	if (len < MIN_QUANT_SIZE) {
@@ -272,13 +272,13 @@ void free_buffer(void *id, void *buffer)
 
 	spin_lock_bh(&(pool->mem_lock));
 
-	print_debug("\t Buffer  :%0x\n", buffer);
+	print_debug("\t Buffer  :%p\n", buffer);
 	header = (bh *) (buffer - sizeof(bh));
 
 	if (header->in_use == 0)
 		goto out;
 
-	print_debug("\t Header  :%0x\n", header);
+	print_debug("\t Header  :%p\n", header);
 
 	pool->tot_free_mem += header->len;
 	header->in_use = 0;
@@ -433,7 +433,7 @@ static void link_and_merge(bp *pool, bh *node)
 	} else {
 		/* Add after the current node */
 		print_debug
-		    ("\t \t Adding after the node with address   :%0x\n",
+		    ("\t \t Adding after the node with address   :%p\n",
 		     add_after);
 		link_after(pool, node, add_after);
 	}
@@ -442,7 +442,7 @@ static void link_and_merge(bp *pool, bh *node)
 
 static void free_link(bp *pool, bh *node)
 {
-	print_debug("\t Freeing link for node       :%0x\n", node);
+	print_debug("\t Freeing link for node       :%p\n", node);
 
 	if (node->prev_link)
 		node->prev_link->next_link = node->next_link;
@@ -474,7 +474,7 @@ static void link_add(bp *pool, bh *node)
 		if (((uint8_t *) node + sizeof(bh)) + node->len ==
 		    (uint8_t *) pool->free_list) {
 			print_debug
-			    ("\t Merging node :%0x and free list head :%0x\n",
+			    ("\t Merging node :%p and free list head :%p\n",
 			     node, pool->free_list);
 			node->len += pool->free_list->len + sizeof(bh);
 
@@ -526,7 +526,7 @@ static void link_after(bp *pool, bh *node, bh *after)
 	n_buff = (uint8_t *) node;
 
 	if (prev)
-		print_debug("Prev buff   :%0x    Node buff   :%0x\n",
+		print_debug("Prev buff   :%p    Node buff   :%p\n",
 			    ((uint8_t *) prev + prev->len + sizeof(bh)),
 			    n_buff);
 
@@ -548,7 +548,7 @@ static void link_after(bp *pool, bh *node, bh *after)
 	n_buff = (uint8_t *) node + sizeof(bh);
 
 	if (next)
-		print_debug("Node buff   :%0x    next buff   :%0x\n",
+		print_debug("Node buff   :%p    next buff   :%p\n",
 			    (n_buff + node->len),
 			    ((uint8_t *) next + sizeof(bh)));
 	if (next && ((n_buff + node->len) == ((uint8_t *) next))) {

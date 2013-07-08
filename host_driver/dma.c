@@ -408,6 +408,65 @@ int32_t transfer_dma_sg(chnl_info_t *dma_chnl, struct scatterlist *ip,
 	return 0;
 }
 
+int dma_abs_req(chnl_info_t *dma_chnl, crypto_mem_info_t *mem,
+		void (*cb) (void *), crypto_op_ctx_t *ctx)
+{
+	struct dma_device *dma_dev = dma_chnl->chnl->device;
+	struct dma_async_tx_descriptor *dma_desc;
+	dma_cookie_t dma_cookie;
+	dma_addr_t s_dma_addr;
+	enum dma_ctrl_flags dma_flags = 0;
+	int ret;
+
+	if ((NULL == dma_chnl) || (NULL == mem)) {
+		print_error("NULL input parameters.....\n");
+		return -1;
+	}
+	dma_flags = DMA_CTRL_ACK | DMA_PREP_INTERRUPT |
+			DMA_COMPL_SKIP_DEST_UNMAP;
+
+	s_dma_addr =
+	    dma_map_single(dma_dev->dev, mem->abs_req, mem->alloc_len,
+			   DMA_BIDIRECTIONAL);
+	if (unlikely(!s_dma_addr)) {
+		print_error("DMA map for source buffer failed...\n");
+		goto error;
+	}
+
+	atomic_set(&ctx->maxreqs, 1);
+	atomic_set(&ctx->reqcnt, 0);
+	dma_desc =
+	    dma_dev->device_prep_dma_memcpy(dma_chnl->chnl,
+					    mem->abs_p_h_map_addr,
+					    s_dma_addr, mem->alloc_len,
+					    dma_flags);
+
+	if (unlikely(!dma_desc)) {
+		print_error("DMA desc constr failed...\n");
+		goto error;
+	}
+
+	dma_desc->callback = cb;
+	dma_desc->callback_param = ctx;
+
+	dma_cookie = dma_desc->tx_submit(dma_desc);
+	if (dma_submit_error(dma_cookie)) {
+		print_error("DMA submit error....\n");
+		goto error;
+	}
+
+	/* Trigger the transaction */
+	dma_async_issue_pending(dma_chnl->chnl);
+
+	return 0;
+error:
+	if (s_dma_addr)
+		dma_unmap_single(dma_dev->dev, s_dma_addr, mem->alloc_len,
+				 DMA_BIDIRECTIONAL);
+	return -1;
+
+}
+
 /******************************************************************************
 Description :	Transfer data from host memory to device memory using DMA.   
 Fields      :   
