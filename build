@@ -1,0 +1,44 @@
+#!/bin/sh
+
+# This is a compiling assistant for skmm host
+#
+# @TAG: 	Indicate the Host platform (p4080, t4240, x86)
+# @COMPILER: 	Indicate the compiler	
+# @KDIR: 	The path of the linux kernel
+# @INSTALL_DIR:	The path of skmm host module installation 
+#
+
+# How to use this script
+# 
+# 1. Set TAG and KDIR varibles:
+#	
+# 2. Build code
+# => ./build
+#
+# 3. Clean code
+# => ./build clean
+# 
+
+TAG=
+KDIR=
+INSTALL_DIR=
+
+echo "###########################"
+echo "#                         #"
+echo "#  Host driver compiling  #"
+echo "#                         #"
+echo "###########################"
+
+if [ $TAG = "p4080" ];then
+	MACHINE=powerpc
+	COMPILER=powerpc-fsl-linux-
+elif [ $TAG = "t4240" ];then
+	MACHINE=powerpc
+	COMPILER=powerpc64-fsl-linux-
+elif [ $TAG = "x86" ];then
+	MACHINE=x86
+	COMPILER=	
+fi
+
+make ARCH=$MACHINE CROSS_COMPILE=$COMPILER KERNEL_DIR=$KDIR PREFIX=$INSTALL_DIR $1
+
