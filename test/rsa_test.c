@@ -41,6 +41,12 @@
 #include "test.h"
 #include "rsa_test.h"
 
+dma_addr_t pub_1k_n, pub_1k_e, pub_1k_f, pub_2k_n, pub_2k_e, pub_2k_f, pub_4k_n,
+	   pub_4k_e, pub_4k_f, pri_1k_p, pri_1k_q, pri_1k_dp, pri_1k_dq,
+	   pri_1k_c, pri_1k_g, pri_2k_p, pri_2k_q, pri_2k_dp, pri_2k_dq,
+	   pri_2k_c, pri_2k_g, pri_4k_p, pri_4k_q, pri_4k_dp, pri_4k_dq,
+	   pri_4k_c, pri_4k_g;
+
 typedef void (*cb) (struct pkc_request *req, int32_t sec_result);
 /*static DECLARE_COMPLETION(jobs_done);*/
 atomic_t rsa_enq_count;
@@ -59,14 +65,21 @@ void init_1k_rsa_pub_op_req(void)
 {
 	g_1kpubopreq.type = RSA_PUB;
 
-	g_1kpubopreq.req_u.rsa_pub_req.n = PUB_N_1024;
+	g_1kpubopreq.req_u.rsa_pub_req.n = kzalloc(pub_n_len, GFP_KERNEL);
 	g_1kpubopreq.req_u.rsa_pub_req.n_len = (pub_n_len);
+	pub_1k_n = __pa(g_1kpubopreq.req_u.rsa_pub_req.n);
+	memcpy(g_1kpubopreq.req_u.rsa_pub_req.n ,PUB_N_1024, pub_n_len);
 
-	g_1kpubopreq.req_u.rsa_pub_req.e = PUB_E_1024;
+	g_1kpubopreq.req_u.rsa_pub_req.e = kzalloc(ALIGN_LEN_TO_DMA(pub_e_len),
+								GFP_KERNEL);
 	g_1kpubopreq.req_u.rsa_pub_req.e_len = (pub_e_len);
+	pub_1k_e = __pa(g_1kpubopreq.req_u.rsa_pub_req.e);
+	memcpy(g_1kpubopreq.req_u.rsa_pub_req.e ,PUB_E_1024, pub_e_len);
 
-	g_1kpubopreq.req_u.rsa_pub_req.f = PUB_F_1024;
+	g_1kpubopreq.req_u.rsa_pub_req.f = kzalloc(pub_f_len, GFP_KERNEL);
 	g_1kpubopreq.req_u.rsa_pub_req.f_len = (pub_f_len);
+	pub_1k_f = __pa(g_1kpubopreq.req_u.rsa_pub_req.f);
+	memcpy(g_1kpubopreq.req_u.rsa_pub_req.f ,PUB_F_1024, pub_f_len);
 
 	g_1kpubopreq.req_u.rsa_pub_req.g =
 	    kzalloc(pub_n_len, GFP_KERNEL | GFP_DMA);
@@ -77,14 +90,21 @@ void init_2k_rsa_pub_op_req(void)
 {
 	g_2kpubopreq.type = RSA_PUB;
 
-	g_2kpubopreq.req_u.rsa_pub_req.n = N_2048;
+	g_2kpubopreq.req_u.rsa_pub_req.n = kzalloc(n_2048, GFP_KERNEL);
 	g_2kpubopreq.req_u.rsa_pub_req.n_len = (n_2048);
+	pub_2k_n = __pa(g_2kpubopreq.req_u.rsa_pub_req.n);
+	memcpy(g_2kpubopreq.req_u.rsa_pub_req.n ,N_2048, n_2048);
 
-	g_2kpubopreq.req_u.rsa_pub_req.e = E_2048;
+	g_2kpubopreq.req_u.rsa_pub_req.e = kzalloc(ALIGN_LEN_TO_DMA(e_2048),
+								GFP_KERNEL);
 	g_2kpubopreq.req_u.rsa_pub_req.e_len = (e_2048);
+	pub_2k_e = __pa(g_2kpubopreq.req_u.rsa_pub_req.e);
+	memcpy(g_2kpubopreq.req_u.rsa_pub_req.e ,E_2048, e_2048);
 
-	g_2kpubopreq.req_u.rsa_pub_req.f = F_2048;
+	g_2kpubopreq.req_u.rsa_pub_req.f = kzalloc(f_2048, GFP_KERNEL);
 	g_2kpubopreq.req_u.rsa_pub_req.f_len = (f_2048);
+	pub_2k_f = __pa(g_2kpubopreq.req_u.rsa_pub_req.f);
+	memcpy(g_2kpubopreq.req_u.rsa_pub_req.f ,F_2048, f_2048);
 
 	g_2kpubopreq.req_u.rsa_pub_req.g =
 	    kzalloc(n_2048, GFP_KERNEL | GFP_DMA);
@@ -95,14 +115,21 @@ void init_4k_rsa_pub_op_req(void)
 {
 	g_4kpubopreq.type = RSA_PUB;
 
-	g_4kpubopreq.req_u.rsa_pub_req.n = N_4096;
+	g_4kpubopreq.req_u.rsa_pub_req.n = kzalloc(n_4096, GFP_KERNEL);
 	g_4kpubopreq.req_u.rsa_pub_req.n_len = (n_4096);
+	pub_4k_n = __pa(g_4kpubopreq.req_u.rsa_pub_req.n);
+	memcpy(g_4kpubopreq.req_u.rsa_pub_req.n ,N_4096, n_4096);
 
-	g_4kpubopreq.req_u.rsa_pub_req.e = E_4096;
+	g_4kpubopreq.req_u.rsa_pub_req.e = kzalloc(ALIGN_LEN_TO_DMA(e_4096),
+								GFP_KERNEL);
 	g_4kpubopreq.req_u.rsa_pub_req.e_len = (e_4096);
+	pub_4k_e = __pa(g_4kpubopreq.req_u.rsa_pub_req.e);
+	memcpy(g_4kpubopreq.req_u.rsa_pub_req.e ,E_4096, e_4096);
 
-	g_4kpubopreq.req_u.rsa_pub_req.f = F_4096;
+	g_4kpubopreq.req_u.rsa_pub_req.f = kzalloc(f_4096, GFP_KERNEL);
 	g_4kpubopreq.req_u.rsa_pub_req.f_len = (f_4096);
+	pub_4k_f = __pa(g_4kpubopreq.req_u.rsa_pub_req.f);
+	memcpy(g_4kpubopreq.req_u.rsa_pub_req.f ,F_4096, f_4096);
 
 	g_4kpubopreq.req_u.rsa_pub_req.g =
 	    kzalloc(n_4096, GFP_KERNEL | GFP_DMA);
@@ -114,23 +141,35 @@ void init_1k_rsa_prv3_op_req(void)
 {
 	g_1kprv3opreq.type = RSA_PRIV_FORM3;
 
-	g_1kprv3opreq.req_u.rsa_priv_f3.p = (uint8_t *) PRV3_P_1024;
+	g_1kprv3opreq.req_u.rsa_priv_f3.p = kzalloc(prv3_p_len, GFP_KERNEL);
 	g_1kprv3opreq.req_u.rsa_priv_f3.p_len = prv3_p_len;
+	pri_1k_p = __pa(g_1kprv3opreq.req_u.rsa_priv_f3.p);
+	memcpy(g_1kprv3opreq.req_u.rsa_priv_f3.p, PRV3_P_1024, prv3_p_len);
 
-	g_1kprv3opreq.req_u.rsa_priv_f3.q = (uint8_t *) PRV3_Q_1024;
+	g_1kprv3opreq.req_u.rsa_priv_f3.q = kzalloc(prv3_q_len, GFP_KERNEL);
 	g_1kprv3opreq.req_u.rsa_priv_f3.q_len = prv3_q_len;
+	pri_1k_q = __pa(g_1kprv3opreq.req_u.rsa_priv_f3.q);
+	memcpy(g_1kprv3opreq.req_u.rsa_priv_f3.q, PRV3_Q_1024, prv3_q_len);
 
-	g_1kprv3opreq.req_u.rsa_priv_f3.dp = (uint8_t *) PRV3_DP_1024;
+	g_1kprv3opreq.req_u.rsa_priv_f3.dp = kzalloc(prv3_dp_len, GFP_KERNEL);
 	g_1kprv3opreq.req_u.rsa_priv_f3.dp_len = prv3_dp_len;
+	pri_1k_dp = __pa(g_1kprv3opreq.req_u.rsa_priv_f3.dp);
+	memcpy(g_1kprv3opreq.req_u.rsa_priv_f3.dp, PRV3_DP_1024, prv3_dp_len);
 
-	g_1kprv3opreq.req_u.rsa_priv_f3.dq = (uint8_t *) PRV3_DQ_1024;
+	g_1kprv3opreq.req_u.rsa_priv_f3.dq = kzalloc(prv3_dq_len, GFP_KERNEL);
 	g_1kprv3opreq.req_u.rsa_priv_f3.dq_len = prv3_dq_len;
+	pri_1k_dq = __pa(g_1kprv3opreq.req_u.rsa_priv_f3.dq);
+	memcpy(g_1kprv3opreq.req_u.rsa_priv_f3.dq, PRV3_DQ_1024, prv3_dq_len);
 
-	g_1kprv3opreq.req_u.rsa_priv_f3.c = (uint8_t *) PRV3_C_1024;
+	g_1kprv3opreq.req_u.rsa_priv_f3.c = kzalloc(prv3_c_len, GFP_KERNEL);
 	g_1kprv3opreq.req_u.rsa_priv_f3.c_len = prv3_c_len;
+	pri_1k_c = __pa(g_1kprv3opreq.req_u.rsa_priv_f3.c);
+	memcpy(g_1kprv3opreq.req_u.rsa_priv_f3.c, PRV3_C_1024, prv3_c_len);
 
-	g_1kprv3opreq.req_u.rsa_priv_f3.g = (uint8_t *) PRV3_G_1024;
+	g_1kprv3opreq.req_u.rsa_priv_f3.g = kzalloc(prv3_g_len, GFP_KERNEL);
 	g_1kprv3opreq.req_u.rsa_priv_f3.g_len = prv3_g_len;
+	pri_1k_g = __pa(g_1kprv3opreq.req_u.rsa_priv_f3.g);
+	memcpy(g_1kprv3opreq.req_u.rsa_priv_f3.g, PRV3_G_1024, prv3_g_len);
 
 	g_1kprv3opreq.req_u.rsa_priv_f3.f =
 	    kzalloc(prv3_n_len, GFP_KERNEL | GFP_DMA);
@@ -141,23 +180,35 @@ void init_2k_rsa_prv3_op_req(void)
 {
 	g_2kprv3opreq.type = RSA_PRIV_FORM3;
 
-	g_2kprv3opreq.req_u.rsa_priv_f3.p = (uint8_t *) P_2048;
+	g_2kprv3opreq.req_u.rsa_priv_f3.p = kzalloc(p_2048, GFP_KERNEL);
 	g_2kprv3opreq.req_u.rsa_priv_f3.p_len = p_2048;
+	pri_2k_p = __pa(g_2kprv3opreq.req_u.rsa_priv_f3.p);
+	memcpy(g_2kprv3opreq.req_u.rsa_priv_f3.p, P_2048, p_2048);
 
-	g_2kprv3opreq.req_u.rsa_priv_f3.q = (uint8_t *) Q_2048;
+	g_2kprv3opreq.req_u.rsa_priv_f3.q = kzalloc(q_2048, GFP_KERNEL);
 	g_2kprv3opreq.req_u.rsa_priv_f3.q_len = q_2048;
+	pri_2k_q = __pa(g_2kprv3opreq.req_u.rsa_priv_f3.q);
+	memcpy(g_2kprv3opreq.req_u.rsa_priv_f3.q, Q_2048, q_2048);
 
-	g_2kprv3opreq.req_u.rsa_priv_f3.dp = (uint8_t *) DP1_2048;
+	g_2kprv3opreq.req_u.rsa_priv_f3.dp = kzalloc(dp1_2048, GFP_KERNEL);
 	g_2kprv3opreq.req_u.rsa_priv_f3.dp_len = dp1_2048;
+	pri_2k_dp = __pa(g_2kprv3opreq.req_u.rsa_priv_f3.dp);
+	memcpy(g_2kprv3opreq.req_u.rsa_priv_f3.dp, DP1_2048, dp1_2048);
 
-	g_2kprv3opreq.req_u.rsa_priv_f3.dq = (uint8_t *) DQ1_2048;
+	g_2kprv3opreq.req_u.rsa_priv_f3.dq = kzalloc(dq1_2048, GFP_KERNEL);
 	g_2kprv3opreq.req_u.rsa_priv_f3.dq_len = dq1_2048;
+	pri_2k_dq = __pa(g_2kprv3opreq.req_u.rsa_priv_f3.dq);
+	memcpy(g_2kprv3opreq.req_u.rsa_priv_f3.dq, DQ1_2048, dq1_2048);
 
-	g_2kprv3opreq.req_u.rsa_priv_f3.c = (uint8_t *) C_2048;
+	g_2kprv3opreq.req_u.rsa_priv_f3.c = kzalloc(c_2048, GFP_KERNEL);
 	g_2kprv3opreq.req_u.rsa_priv_f3.c_len = c_2048;
+	pri_2k_c = __pa(g_2kprv3opreq.req_u.rsa_priv_f3.c);
+	memcpy(g_2kprv3opreq.req_u.rsa_priv_f3.c, C_2048, c_2048);
 
-	g_2kprv3opreq.req_u.rsa_priv_f3.g = (uint8_t *) N_2048;
+	g_2kprv3opreq.req_u.rsa_priv_f3.g = kzalloc(n_2048, GFP_KERNEL);
 	g_2kprv3opreq.req_u.rsa_priv_f3.g_len = n_2048;
+	pri_2k_g = __pa(g_2kprv3opreq.req_u.rsa_priv_f3.g);
+	memcpy(g_2kprv3opreq.req_u.rsa_priv_f3.g, N_2048, n_2048);
 
 	g_2kprv3opreq.req_u.rsa_priv_f3.f =
 	    kzalloc(n_2048, GFP_KERNEL | GFP_DMA);
@@ -168,23 +219,35 @@ void init_4k_rsa_prv3_op_req(void)
 {
 	g_4kprv3opreq.type = RSA_PRIV_FORM3;
 
-	g_4kprv3opreq.req_u.rsa_priv_f3.p = (uint8_t *) P_4096;
+	g_4kprv3opreq.req_u.rsa_priv_f3.p = kzalloc(p_4096, GFP_KERNEL);
 	g_4kprv3opreq.req_u.rsa_priv_f3.p_len = p_4096;
+	pri_4k_p = __pa(g_4kprv3opreq.req_u.rsa_priv_f3.p);
+	memcpy(g_4kprv3opreq.req_u.rsa_priv_f3.p, P_4096, p_4096);
 
-	g_4kprv3opreq.req_u.rsa_priv_f3.q = (uint8_t *) Q_4096;
+	g_4kprv3opreq.req_u.rsa_priv_f3.q = kzalloc(q_4096, GFP_KERNEL);
 	g_4kprv3opreq.req_u.rsa_priv_f3.q_len = q_4096;
+	pri_4k_q = __pa(g_4kprv3opreq.req_u.rsa_priv_f3.q);
+	memcpy(g_4kprv3opreq.req_u.rsa_priv_f3.q, Q_4096, q_4096);
 
-	g_4kprv3opreq.req_u.rsa_priv_f3.dp = (uint8_t *) DP1_4096;
+	g_4kprv3opreq.req_u.rsa_priv_f3.dp = kzalloc(dp1_4096, GFP_KERNEL);
 	g_4kprv3opreq.req_u.rsa_priv_f3.dp_len = dp1_4096;
+	pri_4k_dp = __pa(g_4kprv3opreq.req_u.rsa_priv_f3.dp);
+	memcpy(g_4kprv3opreq.req_u.rsa_priv_f3.dp, DP1_4096, dp1_4096);
 
-	g_4kprv3opreq.req_u.rsa_priv_f3.dq = (uint8_t *) DQ1_4096;
+	g_4kprv3opreq.req_u.rsa_priv_f3.dq = kzalloc(dq1_4096, GFP_KERNEL);
 	g_4kprv3opreq.req_u.rsa_priv_f3.dq_len = dq1_4096;
+	pri_4k_dq = __pa(g_4kprv3opreq.req_u.rsa_priv_f3.dq);
+	memcpy(g_4kprv3opreq.req_u.rsa_priv_f3.dq, DQ1_4096, dq1_4096);
 
-	g_4kprv3opreq.req_u.rsa_priv_f3.c = (uint8_t *) C_4096;
+	g_4kprv3opreq.req_u.rsa_priv_f3.c = kzalloc(c_4096, GFP_KERNEL);
 	g_4kprv3opreq.req_u.rsa_priv_f3.c_len = c_4096;
+	pri_4k_c = __pa(g_4kprv3opreq.req_u.rsa_priv_f3.c);
+	memcpy(g_4kprv3opreq.req_u.rsa_priv_f3.c, C_4096, c_4096);
 
-	g_4kprv3opreq.req_u.rsa_priv_f3.g = (uint8_t *) N_4096;
+	g_4kprv3opreq.req_u.rsa_priv_f3.g = kzalloc(n_4096, GFP_KERNEL);
 	g_4kprv3opreq.req_u.rsa_priv_f3.g_len = n_4096;
+	pri_4k_g = __pa(g_4kprv3opreq.req_u.rsa_priv_f3.g);
+	memcpy(g_4kprv3opreq.req_u.rsa_priv_f3.g, N_4096, n_4096);
 
 	g_4kprv3opreq.req_u.rsa_priv_f3.f =
 	    kzalloc(n_4096, GFP_KERNEL | GFP_DMA);
@@ -205,6 +268,39 @@ void cleanup_rsa_test(void)
 		kfree(g_2kprv3opreq.req_u.rsa_priv_f3.f);
 	if(g_4kprv3opreq.req_u.rsa_priv_f3.f)
 		kfree(g_4kprv3opreq.req_u.rsa_priv_f3.f);
+
+	kfree(g_1kpubopreq.req_u.rsa_pub_req.n);
+	kfree(g_1kpubopreq.req_u.rsa_pub_req.e);
+	kfree(g_1kpubopreq.req_u.rsa_pub_req.f);
+
+	kfree(g_2kpubopreq.req_u.rsa_pub_req.n);
+	kfree(g_2kpubopreq.req_u.rsa_pub_req.e);
+	kfree(g_2kpubopreq.req_u.rsa_pub_req.f);
+
+	kfree(g_4kpubopreq.req_u.rsa_pub_req.n);
+	kfree(g_4kpubopreq.req_u.rsa_pub_req.e);
+	kfree(g_4kpubopreq.req_u.rsa_pub_req.f);
+
+	kfree(g_1kprv3opreq.req_u.rsa_priv_f3.p);
+	kfree(g_1kprv3opreq.req_u.rsa_priv_f3.q);
+	kfree(g_1kprv3opreq.req_u.rsa_priv_f3.dp);
+	kfree(g_1kprv3opreq.req_u.rsa_priv_f3.dq);
+	kfree(g_1kprv3opreq.req_u.rsa_priv_f3.c);
+	kfree(g_1kprv3opreq.req_u.rsa_priv_f3.g);
+
+	kfree(g_2kprv3opreq.req_u.rsa_priv_f3.p);
+	kfree(g_2kprv3opreq.req_u.rsa_priv_f3.q);
+	kfree(g_2kprv3opreq.req_u.rsa_priv_f3.dp);
+	kfree(g_2kprv3opreq.req_u.rsa_priv_f3.dq);
+	kfree(g_2kprv3opreq.req_u.rsa_priv_f3.c);
+	kfree(g_2kprv3opreq.req_u.rsa_priv_f3.g);
+
+	kfree(g_4kprv3opreq.req_u.rsa_priv_f3.p);
+	kfree(g_4kprv3opreq.req_u.rsa_priv_f3.q);
+	kfree(g_4kprv3opreq.req_u.rsa_priv_f3.dp);
+	kfree(g_4kprv3opreq.req_u.rsa_priv_f3.dq);
+	kfree(g_4kprv3opreq.req_u.rsa_priv_f3.c);
+	kfree(g_4kprv3opreq.req_u.rsa_priv_f3.g);
 }
 
 #ifndef SIMPLE_TEST_ENABLE
