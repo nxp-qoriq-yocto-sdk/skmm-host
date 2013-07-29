@@ -47,7 +47,7 @@
 #endif
 #define DEFAULT_HOST_OP_BUFFER_POOL_SIZE	(1*1024)
 #define DEFAULT_FIRMWARE_RESP_RING_DEPTH	(128*4)
-#define FIRMWARE_IP_BUFFER_POOL_SIZE		(512*1024)
+#define FIRMWARE_IP_BUFFER_POOL_SIZE		(128*1024 + 512*1024)
 
 #define CACHE_LINE_SIZE_SHIFT		6
 #define CACHE_LINE_SIZE			(1 << CACHE_LINE_SIZE_SHIFT)
@@ -674,6 +674,7 @@ int32_t handshake(fsl_crypto_dev_t *dev, crypto_dev_config_t *config)
 #define LOOP_BREAK_TIMEOUT_JIFFIES	msecs_to_jiffies(LOOP_BREAK_TIMEOUT_MS)
 #define HS_TIMEOUT_IN_MS		(50 * LOOP_BREAK_TIMEOUT_MS)
 
+	ASSIGN8(dev->c_hs_mem->state, FIRMWARE_UP);
 	while (true) {
 		ASSIGN8(dev->h_mem->hs_mem.state, dev->h_mem->hs_mem.state);
 		switch (dev->h_mem->hs_mem.state) {
@@ -910,208 +911,6 @@ error:
 
 }
 
-#ifdef CHECK_EP_BOOTUP
-static void check_ep_bootup(fsl_crypto_dev_t *dev)
-{
-	unsigned char *ibaddr = dev->mem[MEM_TYPE_SRAM].host_v_addr;
-	unsigned char *obaddr = dev->mem[MEM_TYPE_DRIVER].host_v_addr;
-
-	char stdstr[] = "SUCCESS";
-	char obstr[] = "0000000";
-	int i = 0, bootup = 1;
-	char val = 0;
-
-	print_debug("\n\n======= check_ep_bootup =======\n");
-	print_debug("IB Addr: %0x, OB Addr: %0x\n", ibaddr, obaddr);
-
-	ibaddr += (512 * 1024);
-
-	for (i = 0; i < sizeof(stdstr); i++) {
-		val = ioread8((char *)ibaddr + i);
-		if (stdstr[i] != val) {
-			print_error
-			    ("Invld byte at loc :%d, val : %0x, shld be :%0x\n",
-			     i, val, stdstr[i]);
-			bootup = 0;
-		}
-	}
-
-	if (!bootup)
-		print_error("!!! Bootup Failed.....\n");
-	else
-		print_debug("Bootup Successfull...\n");
-
-	for (i = 0; i < 100; i++) {
-		strncpy(obstr, obaddr, sizeof(stdstr));
-		if (!strcmp(obstr, stdstr)) {
-			print_debug("\n Got ittttt....");
-			break;
-		} else
-			print_debug("\n Not yetttt... ");
-
-		set_current_state(TASK_INTERRUPTIBLE);
-		schedule_timeout(msecs_to_jiffies(100));
-	}
-}
-#endif
-
-static void setup_ep(fsl_crypto_dev_t *dev)
-{
-	/* This function boots EP from BP140 - Platform SRAM */
-	unsigned int l2_sram_start = 0xfff00000;
-	unsigned int p_sram_start = 0xfff80000;
-	unsigned int val = 0;
-#ifdef PRINT_DEBUG
-	phys_addr_t msi_mem = dev->mem[MEM_TYPE_MSI].host_p_addr;
-	char ccsr_bar = 0;
-#endif
-	print_debug("\n\n ======= setup_ep =======\n");
-	print_debug("Ob mem dma addr	:%0x , len: %d\n",
-		    dev->mem[MEM_TYPE_DRIVER].host_p_addr,
-		    dev->mem[MEM_TYPE_DRIVER].len);
-	print_debug("BAR0 V Addr	: %0x\n",
-		    dev->mem[MEM_TYPE_CONFIG].host_v_addr);
-	print_debug("MSI mem		: %0x\n", msi_mem);
-
-#define HELP_MACRO(x, y)	\
-	FSL_DEVICE_WRITE32_BAR0_REG(dev->mem[MEM_TYPE_CONFIG].host_v_addr, x, y)
-#define BAR1_R_MACRO(x) \
-	FSL_DEVICE_READ32_BAR1_REG(dev->mem[MEM_TYPE_CONFIG].host_v_addr, x, 0)
-	/* disable L2 SRAM ECC error */
-	val =
-	    FSL_DEVICE_READ32_BAR0_REG(dev->mem[MEM_TYPE_CONFIG].host_v_addr,
-				       0x20e44, 0);
-	HELP_MACRO(0x20e44, val | 0x0c);
-
-	/* set L2 SRAM memory-mapped address and enable it */
-	HELP_MACRO(0x20100, l2_sram_start);
-	HELP_MACRO(0x20104, 0x0);
-	HELP_MACRO(0x20000, 0x80010000);
-
-	/* set the law for BP140 sram */
-	HELP_MACRO(0xc08, p_sram_start >> 12);
-	HELP_MACRO(0xc10, 0x80a00012);
-#if 0
-	/* set the law for PCIe OB - 1GB - O to 1G */
-/*	HELP_MACRO(0xc28, 0x00000); */
-	HELP_MACRO(0xc28, 0x80000);
-	HELP_MACRO(0xc30, 0x8020001d);
-
-	/* set the law for PCIe OB - 1MB */
-	HELP_MACRO(0xc48, 0x90000);
-	HELP_MACRO(0xc50, 0x80200013);
-#else
-	/* Set law for PCIe OB - 16G */
-	HELP_MACRO(0xc28, 0x800000);
-	HELP_MACRO(0xc30, 0x80200021);
-#endif
-
-	/* set inbound 1 attribute and enable it */
-	HELP_MACRO(0xadc0, l2_sram_start >> 12);
-	HELP_MACRO(0xadd0, 0xa0a55013);
-
-#if 0
-	/* Set the OB base address for ob mem - 1G */
-	/* Get the 1G aligned address for ob_mem */
-#define OB_MEM_1G_ALIGNED_MASK		((~(0)) << 30)
-	ob_mem = (ob_mem & OB_MEM_1G_ALIGNED_MASK);
-	HELP_MACRO(0xac20, ob_mem >> 12);
-	HELP_MACRO(0xac24, 0);
-	HELP_MACRO(0xac28, 0x80000);
-	HELP_MACRO(0xac30, 0x8004401d);
-
-/*	HELP_MACRO(0xac28, 0x80000); */
-/*	HELP_MACRO(0xac30, 0x80044013); */
-
-	/* Set the OB base address for MSI */
-	HELP_MACRO(0xac40, (msi_mem & 0xfff00000) >> 12);
-	HELP_MACRO(0xac44, 0);
-	HELP_MACRO(0xac48, 0xc1000);
-	HELP_MACRO(0xac50, 0x80044013);
-#else
-	/* Set the OB base address for ob mem */
-	HELP_MACRO(0xac20, 0);
-	HELP_MACRO(0xac24, 0);
-	HELP_MACRO(0xac28, 0x800000);
-	HELP_MACRO(0xac30, 0x80044021);
-#endif
-
-#define BOOTUP_REG_DUMP
-#ifdef BOOTUP_REG_DUMP
-	/* Dumping the registers set */
-	print_debug("\n ==== EP REGISTERS ====\n");
-	print_debug("0X20100 :- %0x\n", BAR1_R_MACRO(ccsr_bar + 0x20100));
-	print_debug("0X20104 :- %0x\n", BAR1_R_MACRO(ccsr_bar + 0x20104));
-	print_debug("0X20000 :- %0x\n", BAR1_R_MACRO(ccsr_bar + 0x20000));
-
-	print_debug("0xc08  :- :%0x\n", BAR1_R_MACRO(ccsr_bar + 0xc08));
-	print_debug("0xc10  :- :%0x\n", BAR1_R_MACRO(ccsr_bar + 0xc10));
-
-	print_debug("0xc28  :- :%0x\n", BAR1_R_MACRO(ccsr_bar + 0xc28));
-	print_debug("0xc30  :- :%0x\n", BAR1_R_MACRO(ccsr_bar + 0xc30));
-
-	print_debug("0xadd0 :- :%0x\n", BAR1_R_MACRO(ccsr_bar + 0xadd0));
-	print_debug("0xadc0 :- :%0x\n", BAR1_R_MACRO(ccsr_bar + 0xadc0));
-
-	print_debug("0xac20 :- :%0x\n", BAR1_R_MACRO(ccsr_bar + 0xac20));
-	print_debug("0xac24 :- :%0x\n", BAR1_R_MACRO(ccsr_bar + 0xac24));
-	print_debug("0xac28 :- :%0x\n", BAR1_R_MACRO(ccsr_bar + 0xac28));
-	print_debug("0xac30 :- :%0x\n", BAR1_R_MACRO(ccsr_bar + 0xac30));
-
-	print_debug("0xac40 :- :%0x\n", BAR1_R_MACRO(ccsr_bar + 0xac40));
-	print_debug("0xac44 :- :%0x\n", BAR1_R_MACRO(ccsr_bar + 0xac44));
-	print_debug("0xac48 :- :%0x\n", BAR1_R_MACRO(ccsr_bar + 0xac48));
-	print_debug("0xac50 :- :%0x\n", BAR1_R_MACRO(ccsr_bar + 0xac50));
-
-	print_debug("\n =======================\n");
-#endif
-}
-
-static int32_t boot_device(fsl_crypto_dev_t *dev, uint8_t *fw_file_path)
-{
-	uint8_t byte = 0X00;
-	uint32_t offset = FIRMWARE_IMAGE_START_OFFSET;
-	uint32_t size = 0;
-
-	loff_t pos = 0;
-	struct file *file = NULL;
-	mm_segment_t old_fs;
-
-	old_fs = get_fs();
-
-	set_fs(KERNEL_DS);
-
-	if (unlikely(NULL == fw_file_path)) {
-		print_error("NULL arg\n");
-		return -1;
-	}
-
-	print_debug("Firmware file path     :%s\n", fw_file_path);
-
-	file = filp_open((const char *)fw_file_path, O_RDWR, 0);
-/*    file = filp_open("/etc/crypto/u-boot-sd.bin",O_RDWR,0); */
-	if (IS_ERR(file)) {
-		print_error("Firmware file path [%s] does not exist\n",
-			    fw_file_path);
-		return -1;
-	}
-
-	for (size = 0; size < FSL_FIRMWARE_SIZE; size++) {
-		/* Read byte from the file */
-		vfs_read(file, &byte, 1, &pos);
-		FSL_DEVICE_WRITE8_BAR1_REG(dev->mem[MEM_TYPE_SRAM].host_v_addr,
-					   (offset + size), byte);
-	}
-
-	filp_close(file, 0);
-	set_fs(old_fs);
-
-	/* Release the core 0 */
-	FSL_DEVICE_WRITE32_BAR0_REG(dev->mem[MEM_TYPE_CONFIG].host_v_addr,
-				    BRR_OFFSET, BRR_VALUE);
-
-	return 0;
-}
 
 void init_op_pool(fsl_crypto_dev_t *dev)
 {
@@ -1236,39 +1035,29 @@ static int32_t ring_enqueue(fsl_crypto_dev_t *c_dev, uint32_t jr_id,
 	rp->shadow_counters->req_jobs_added = rp->counters->jobs_added;
 #endif
 
-/*
- * No more need to update total counters ...
-
-	c_dev->h_mem->cntrs_mem->tot_jobs_added += 1;
-	print_debug("Tot jobs added	:%d\n",
-	c_dev->h_mem->cntrs_mem->tot_jobs_added);
-	ASSIGN32(c_dev->s_mem.s_cntrs->tot_jobs_added,	\
-	c_dev->h_mem->cntrs_mem->tot_jobs_added);
-*/
-
 	spin_unlock_bh(&(rp->ring_lock));
 	return 0;
 }
 
 void prepare_crypto_cfg_info_string( crypto_dev_config_t *config, uint8_t *cryp_cfg_str )
 {
-    uint32_t    i = 0;
-    uint8_t     ring_str[100];
+	uint32_t    i = 0;
+	uint8_t     ring_str[100];
 
-    sprintf(cryp_cfg_str, "Tot rings:%d\n", config->num_of_rings);
-    sprintf(ring_str, "rid,dpth,affin,prio,ord\n");
-    strcat(cryp_cfg_str, ring_str);
-    for (i = 0; i < config->num_of_rings; i++) {
-        sprintf(ring_str, " %d,%4d,%d,%d,%d\n", i, config->ring[i].depth,
-            (((config->ring[i].flags) & APP_RING_PROP_AFFINE_MASK) >>
-             APP_RING_PROP_AFFINE_SHIFT),
-            (((config->ring[i].flags) & APP_RING_PROP_PRIO_MASK) >>
-             APP_RING_PROP_PRIO_SHIFT),
-            (((config->ring[i].flags) & APP_RING_PROP_ORDER_MASK) >>
-             APP_RING_PROP_ORDER_SHIFT));
-        strcat(cryp_cfg_str, ring_str);
-    }
-    return;
+	sprintf(cryp_cfg_str, "Tot rings:%d\n", config->num_of_rings);
+	sprintf(ring_str, "rid,dpth,affin,prio,ord\n");
+	strcat(cryp_cfg_str, ring_str);
+	for (i = 0; i < config->num_of_rings; i++) {
+		sprintf(ring_str, " %d,%4d,%d,%d,%d\n", i, config->ring[i].depth,
+			(((config->ring[i].flags) & APP_RING_PROP_AFFINE_MASK) >>
+			 APP_RING_PROP_AFFINE_SHIFT),
+			(((config->ring[i].flags) & APP_RING_PROP_PRIO_MASK) >>
+			 APP_RING_PROP_PRIO_SHIFT),
+			(((config->ring[i].flags) & APP_RING_PROP_ORDER_MASK) >>
+			 APP_RING_PROP_ORDER_SHIFT));
+		strcat(cryp_cfg_str, ring_str);
+	}
+	return;
 }
 
 
@@ -1355,23 +1144,10 @@ void *fsl_crypto_layer_add_device(void *dev, crypto_dev_config_t *config)
 	distribute_rings(c_dev, config);
 	print_debug("\t Distribute ring complete...\n");
 
-#ifdef C293_EP
-	/* Set the EP registers correctly before booting... */
-	setup_ep(c_dev);
-#endif
-
 	print_debug("\t Init Handshake....\n");
 	/* Initialise hs mem */
 	init_handshake(c_dev);
 	print_debug("\t Init Handshake complete...\n");
-
-	if (unlikely(boot_device(c_dev, config->fw_file_path))) {
-		print_error("Firmware download failed\n");
-		goto error;
-	}
-#ifdef CHECK_EP_BOOTUP
-	check_ep_bootup(c_dev);
-#endif
 
 	set_sysfs_value(dev, DEVICE_STATE_SYSFILE, (uint8_t *) "HS Started\n",
 			strlen("HS Started\n"));
@@ -1392,9 +1168,9 @@ void *fsl_crypto_layer_add_device(void *dev, crypto_dev_config_t *config)
 	set_sysfs_value(dev, DEVICE_STATE_SYSFILE, (uint8_t *) "DRIVER READY\n",
 			strlen("DRIVER READY\n"));
 
-    prepare_crypto_cfg_info_string(config, crypto_info_str);
-    set_sysfs_value(dev, CRYPTO_INFO_SYS_FILE, (uint8_t *)crypto_info_str,
-            strlen(crypto_info_str));
+	prepare_crypto_cfg_info_string(config, crypto_info_str);
+	set_sysfs_value(dev, CRYPTO_INFO_SYS_FILE, (uint8_t *)crypto_info_str,
+			strlen(crypto_info_str));
 
 	printk(KERN_INFO "[FSL-CRYPTO-OFFLOAD-DRV] DevId:%d DEVICE IS UP\n",
 	       c_dev->config->dev_no);

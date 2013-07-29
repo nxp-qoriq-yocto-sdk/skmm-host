@@ -3,6 +3,8 @@
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions are met:
  *
+ *
+ *
  * Redistributions of source code must retain the above copyright
  * notice, this list of conditions and the following disclaimer.
  * Redistributions in binary form must reproduce the above copyright
@@ -12,6 +14,7 @@
  * Neither the name of Freescale Semiconductor nor the
  * names of its contributors may be used to endorse or promote products
  * derived from this software without specific prior written permission.
+ *
  *
  * ALTERNATIVELY, this software may be distributed under the terms of the
  * GNU General Public License ("GPL") as published by the Free Software
@@ -29,7 +32,6 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE)ARISING IN ANY WAY OUT OF THE USE OF THIS
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 static uint8_t C[] = {
     0xcf, 0x50, 0x78, 0xd3, 0x8c, 0x94, 0x20, 0x5c, 0x48, 0x8c, 0xd5, 0x68,
     0x36, 0xce, 0x39, 0x95, 0xad, 0x87, 0x27, 0x0, 0x3, 0x80, 0x4e, 0x14, 
