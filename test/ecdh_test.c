@@ -145,16 +145,12 @@ void init_ecdh_test(void)
 {
 	g_ecdhreq.type = ECDH_COMPUTE_KEY;
 
-	g_ecdhreq.req_u.dh_req.q = Q;
-	g_ecdhreq.req_u.dh_req.q_len = (q_len);
-
-	g_ecdhreq.req_u.dh_req.pub_key = W1;
+	g_ecdhreq.req_u.dh_req.pub_key = kzalloc(w1_len, GFP_KERNEL | GFP_DMA);
+	memcpy(g_ecdhreq.req_u.dh_req.pub_key, W1, w1_len);
 	g_ecdhreq.req_u.dh_req.pub_key_len = (w1_len);
 
-	g_ecdhreq.req_u.dh_req.s = S2;
-	g_ecdhreq.req_u.dh_req.s_len = (s2_len);
-
-	g_ecdhreq.req_u.dh_req.ab = AB;
+	g_ecdhreq.req_u.dh_req.ab = kzalloc(ab_len, GFP_KERNEL | GFP_DMA);
+	memcpy(g_ecdhreq.req_u.dh_req.ab, AB, ab_len);
 	g_ecdhreq.req_u.dh_req.ab_len = (ab_len);
 
 	g_ecdhreq.req_u.dh_req.z = kzalloc(q_len, GFP_KERNEL | GFP_DMA);
@@ -165,6 +161,9 @@ void cleanup_ecdh_test(void)
 {
 	if(g_ecdhreq.req_u.dh_req.z)
 		kfree(g_ecdhreq.req_u.dh_req.z);
+
+	kfree(g_ecdhreq.req_u.dh_req.pub_key);
+	kfree(g_ecdhreq.req_u.dh_req.ab);
 }
 
 int ecdh_test(void)

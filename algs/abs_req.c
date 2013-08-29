@@ -165,6 +165,8 @@ static int get_abs_req_type(struct pkc_request *req, void *buffer)
 					dh_key->z_len);
 			return -EINVAL;
 		}
+	case ECDH_COMPUTE_KEY:
+		return SKMM_ECDH;
 	}
 
 	return 0;
@@ -273,11 +275,15 @@ void constr_abs_req(crypto_mem_info_t *c_mem, struct pkc_request *req)
 		break;
 
 	case DH_COMPUTE_KEY:
+	case ECDH_COMPUTE_KEY:
 		dh_key = &abs_req->req_data.dh_key;
 		dh_key_buf = (dh_key_buffers_t *)c_mem->buffers;
 
 		ASSIGN64(dh_key->w, dh_key_buf->w_buff.dev_buffer.d_p_addr);
 		ASSIGN64(dh_key->z, dh_key_buf->z_buff.dev_buffer.d_p_addr);
+		if (type == ECDH_COMPUTE_KEY)
+			ASSIGN64(dh_key->ab,
+				dh_key_buf->ab_buff.dev_buffer.d_p_addr);
 		break;
 
 	}

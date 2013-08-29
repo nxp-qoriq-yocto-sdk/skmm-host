@@ -75,6 +75,7 @@ struct dsa_sign {
 struct dh_key {
 	dev_p_addr_t w;
 	dev_p_addr_t z;
+	dev_p_addr_t ab;
 };
 
 struct abs_req {

@@ -156,6 +156,10 @@ static int dh_key_cp_req(struct dh_key_req_s *req, crypto_mem_info_t *mem_info,
 	mem->w_buff.v_mem = req->pub_key;
 
 	mem->z_buff.v_mem = req->z;
+
+	if (ecdh)
+		mem->ab_buff.v_mem = req->ab;
+
 	return 0;
 }
 
