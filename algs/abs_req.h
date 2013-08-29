@@ -72,6 +72,11 @@ struct dsa_sign {
 	dev_p_addr_t ab;
 };
 
+struct dh_key {
+	dev_p_addr_t w;
+	dev_p_addr_t z;
+};
+
 struct abs_req {
 	int req_type;
 	union {
@@ -79,6 +84,7 @@ struct abs_req {
 		struct rsa_priv3 rsa_priv3;
 		struct dsa_sign dsa_sign;
 		struct dsa_verify dsa_verify;
+		struct dh_key dh_key;
 	} req_data;
 };
 

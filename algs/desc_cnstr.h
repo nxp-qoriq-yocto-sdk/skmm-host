@@ -132,7 +132,6 @@ typedef struct dsa_keygen_buffers {
 } dsa_keygen_buffers_t;
 
 typedef struct dh_key_buffers {
-	buffer_info_t desc_buff;
 	buffer_info_t q_buff;
 	buffer_info_t w_buff;
 	buffer_info_t s_buff;

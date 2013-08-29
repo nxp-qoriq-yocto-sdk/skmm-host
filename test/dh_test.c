@@ -106,14 +106,9 @@ void init_dh_test_1k(void)
 {
 	g_dhreq_1k.type = DH_COMPUTE_KEY;
 
-	g_dhreq_1k.req_u.dh_req.q = Q;
-	g_dhreq_1k.req_u.dh_req.q_len = (q_len);
-
-	g_dhreq_1k.req_u.dh_req.pub_key = W1;
+	g_dhreq_1k.req_u.dh_req.pub_key = kzalloc(w1_len, GFP_KERNEL | GFP_DMA);
+	memcpy(g_dhreq_1k.req_u.dh_req.pub_key, W1, w1_len);
 	g_dhreq_1k.req_u.dh_req.pub_key_len = (w1_len);
-
-	g_dhreq_1k.req_u.dh_req.s = S2;
-	g_dhreq_1k.req_u.dh_req.s_len = (s2_len);
 
 	g_dhreq_1k.req_u.dh_req.z = kzalloc(q_len, GFP_KERNEL | GFP_DMA);
 	g_dhreq_1k.req_u.dh_req.z_len = q_len;
@@ -123,14 +118,11 @@ void init_dh_test_2k(void)
 {
 	g_dhreq_2k.type = DH_COMPUTE_KEY;
 
-	g_dhreq_2k.req_u.dh_req.q = Q_2048;
-	g_dhreq_2k.req_u.dh_req.q_len = (q_len_2048);
-
-	g_dhreq_2k.req_u.dh_req.pub_key = W1_2048;
+	g_dhreq_2k.req_u.dh_req.pub_key = kzalloc(w1_len_2048,
+						GFP_KERNEL | GFP_DMA);
+	memcpy(g_dhreq_2k.req_u.dh_req.pub_key, W1_2048, w1_len_2048);
 	g_dhreq_2k.req_u.dh_req.pub_key_len = (w1_len_2048);
 
-	g_dhreq_2k.req_u.dh_req.s = S2_2048;
-	g_dhreq_2k.req_u.dh_req.s_len = (s2_len_2048);
 
 	g_dhreq_2k.req_u.dh_req.z = kzalloc(q_len_2048, GFP_KERNEL | GFP_DMA);
 	g_dhreq_2k.req_u.dh_req.z_len = q_len_2048;
@@ -140,14 +132,12 @@ void init_dh_test_4k(void)
 {
 	g_dhreq_4k.type = DH_COMPUTE_KEY;
 
-	g_dhreq_4k.req_u.dh_req.q = Q_4096;
-	g_dhreq_4k.req_u.dh_req.q_len = (q_len_4096);
 
-	g_dhreq_4k.req_u.dh_req.pub_key = W1_4096;
+	g_dhreq_4k.req_u.dh_req.pub_key = kzalloc(w1_len_4096,
+						GFP_KERNEL | GFP_DMA);
+	memcpy(g_dhreq_4k.req_u.dh_req.pub_key, W1_4096, w1_len_4096);
 	g_dhreq_4k.req_u.dh_req.pub_key_len = (w1_len_4096);
 
-	g_dhreq_4k.req_u.dh_req.s = S2_4096;
-	g_dhreq_4k.req_u.dh_req.s_len = (s2_len_4096);
 
 	g_dhreq_4k.req_u.dh_req.z = kzalloc(q_len_4096, GFP_KERNEL | GFP_DMA);
 	g_dhreq_4k.req_u.dh_req.z_len = q_len_4096;
@@ -161,6 +151,10 @@ void cleanup_dh_test(void)
 		kfree(g_dhreq_2k.req_u.dh_req.z);
 	if(g_dhreq_4k.req_u.dh_req.z)
 		kfree(g_dhreq_4k.req_u.dh_req.z);
+
+	kfree(g_dhreq_1k.req_u.dh_req.pub_key);
+	kfree(g_dhreq_2k.req_u.dh_req.pub_key);
+	kfree(g_dhreq_4k.req_u.dh_req.pub_key);
 }
 
 int dh_test_1k(void)

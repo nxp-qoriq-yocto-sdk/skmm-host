@@ -118,10 +118,8 @@ static void dh_key_init_len(struct dh_key_req_s *req,
 	mem->z_buff.len = req->z_len;
 	if (ecdh) {
 		mem->ab_buff.len = req->ab_len;
-		mem->desc_buff.len = sizeof(struct ecdh_key_desc_s);
 	} else {
 		mem->ab_buff.len = 0;
-		mem->desc_buff.len = sizeof(struct dh_key_desc_s);
 	}
 }
 
@@ -154,25 +152,9 @@ static int dh_key_cp_req(struct dh_key_req_s *req, crypto_mem_info_t *mem_info,
 	print_debug("\t \t Calling alloc_crypto_mem\n");
 	if (-ENOMEM == alloc_crypto_mem(mem_info))
 		return -ENOMEM;
-#ifndef HOST_TO_DEV_MEMCPY
-	memcpy(mem->q_buff.v_mem, req->q, mem->q_buff.len);
-	memcpy(mem->w_buff.v_mem, req->pub_key, mem->w_buff.len);
-	memcpy(mem->s_buff.v_mem, req->s, mem->s_buff.len);
 
-	if (ecdh)
-		memcpy(mem->ab_buff.v_mem, req->ab, mem->ab_buff.len);
-	else
-		mem->ab_buff.v_mem = NULL;
-#else
-	mem->q_buff.req_ptr = req->q;
-	mem->w_buff.req_ptr = req->pub_key;
-	mem->s_buff.req_ptr = req->s;
+	mem->w_buff.v_mem = req->pub_key;
 
-	if (ecdh)
-		mem->ab_buff.req_ptr = req->ab;
-	else
-		mem->ab_buff.req_ptr = NULL;
-#endif
 	mem->z_buff.v_mem = req->z;
 	return 0;
 }
@@ -210,6 +192,7 @@ static int dh_keygen_cp_req(struct dh_keygen_req_s *req, crypto_mem_info_t *mem_
     return 0;
 }
 
+#if 0
 /* Desc constr functions */
 static void constr_dh_key_desc(crypto_mem_info_t *mem_info)
 {
@@ -310,6 +293,8 @@ static void constr_ecdh_key_desc(crypto_mem_info_t *mem_info, bool ecc_bin)
 	}
 #endif
 }
+
+#endif
 
 static void constr_ecdh_keygen_desc(crypto_mem_info_t *mem_info, bool ecc_bin)
 {
@@ -505,7 +490,7 @@ int dh_op(struct pkc_request *req)
 		    crypto_ctx);
 
 	if (unlikely(!crypto_ctx)) {
-		print_error("Mem alloc failed....\n");
+		print_debug("Mem alloc failed....\n");
 		ret = -ENOMEM;
 		goto error;
 	}
@@ -579,42 +564,21 @@ int dh_op(struct pkc_request *req)
 
 		print_debug("\t \t \t Host to dev convert complete....\n");
 
-		/* Constr the hw desc */
-		if (ecdh)
-			constr_ecdh_key_desc(&crypto_ctx->crypto_mem, ecc_bin);
-		else
-			constr_dh_key_desc(&crypto_ctx->crypto_mem);
-		print_debug("\t \t \t Desc constr complete...\n");
-
-		sec_dma = dh_key_buffs->desc_buff.dev_buffer.d_p_addr;
-
-		/* Store the context */
-		print_debug(KERN_ERR
-			    "[Enq] Desc addr :%0llx Hbuffer addr :%p	Crypto ctx :%p\n",
-			    dh_key_buffs->desc_buff.dev_buffer.d_p_addr,
-			    dh_key_buffs->desc_buff.v_mem, crypto_ctx);
-
-		store_priv_data(crypto_ctx->crypto_mem.pool,
-				dh_key_buffs->desc_buff.v_mem,
-				(unsigned long)crypto_ctx);
 		break;
 
 	default:
 		ret = -EINVAL;
 		break;
 	}
-#ifndef HOST_TO_DEV_MEMCPY
-	/* Since the desc is first memory inthe contig chunk which needs to be
-	 * transferred, hence taking its p addr as the
-	 * source for the complete transfer.
-	 */
-	crypto_ctx->crypto_mem.dest_buff_dma =
-	    crypto_ctx->crypto_mem.buffers[BT_DESC].dev_buffer.h_map_p_addr;
-#endif
 
-#ifdef HOST_TO_DEV_MEMCPY
-	memcpy_to_dev(&crypto_ctx->crypto_mem);
-#endif
+	/* constructure abstract request */
+	constr_abs_req(&crypto_ctx->crypto_mem, req);
+
+	sec_dma = get_abs_req_p_addr(&crypto_ctx->crypto_mem);
+
+	store_priv_data(crypto_ctx->crypto_mem.pool,
+				crypto_ctx->crypto_mem.abs_req,
+				(unsigned long)crypto_ctx);
 
 	crypto_ctx->req.pkc = req;
 	crypto_ctx->oprn = DH;
@@ -636,7 +600,7 @@ int dh_op(struct pkc_request *req)
 #endif
 #ifndef HOST_TO_DEV_MEMCPY
 	if (-1 ==
-	    dma_to_dev(get_dma_chnl(), &crypto_ctx->crypto_mem,
+	    dma_abs_req(get_dma_chnl(), &crypto_ctx->crypto_mem,
 		       dma_tx_complete_cb, crypto_ctx)) {
 		print_error("DMA to dev failed....\n");
 		ret = -1;

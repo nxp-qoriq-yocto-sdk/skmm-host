@@ -104,8 +104,11 @@ static int get_abs_req_type(struct pkc_request *req, void *buffer)
 {
 	struct rsa_priv_frm3_req_s *priv3_req;
 	struct dsa_sign_req_s *dsa_sign;
+	struct dh_key_req_s *dh_key;
+
 	int type = req->type;
 
+	print_debug("req->type : %d\n", type);
 	switch (type) {
 	case RSA_PUB:
 
@@ -147,6 +150,21 @@ static int get_abs_req_type(struct pkc_request *req, void *buffer)
 		}
 	case ECDSA_SIGN:
 		return SKMM_ECDSA_SIGN;
+	case DH_COMPUTE_KEY:
+		dh_key = &req->req_u.dh_req;
+
+		print_debug("key size is %d\n", dh_key->z_len);
+		if (dh_key->z_len = 128)
+			return SKMM_DH_1K;
+		else if (dh_key->z_len == 256)
+			return SKMM_DH_2K;
+		else if (dh_key->z_len == 512)
+			return SKMM_DH_4K;
+		else {
+			print_error("Invalid key size %d\n",
+					dh_key->z_len);
+			return -EINVAL;
+		}
 	}
 
 	return 0;
@@ -164,6 +182,9 @@ void constr_abs_req(crypto_mem_info_t *c_mem, struct pkc_request *req)
 	struct dsa_sign *dsa_sign;
 	struct dsa_verify *dsa_verify;
 
+	dh_key_buffers_t *dh_key_buf;
+	struct dh_key *dh_key;
+
 	int abs_req_type, type = req->type;
 #ifndef USE_HOST_DMA
 	struct abs_req *abs_req = get_abs_req_v_addr(c_mem);
@@ -174,6 +195,7 @@ void constr_abs_req(crypto_mem_info_t *c_mem, struct pkc_request *req)
 	print_debug("abs_req addr is %p\n", abs_req);
 
 	abs_req_type = get_abs_req_type(req, c_mem->buffers);
+	print_debug("type is %d\n", abs_req_type);
 
 	ASSIGN32(abs_req->req_type, abs_req_type);
 
@@ -248,6 +270,14 @@ void constr_abs_req(crypto_mem_info_t *c_mem, struct pkc_request *req)
 		ASSIGN32(dsa_verify->q_len, dsa_verify_buf->q_buff.len);
 		ASSIGN32(dsa_verify->r_len, dsa_verify_buf->r_buff.len);
 
+		break;
+
+	case DH_COMPUTE_KEY:
+		dh_key = &abs_req->req_data.dh_key;
+		dh_key_buf = (dh_key_buffers_t *)c_mem->buffers;
+
+		ASSIGN64(dh_key->w, dh_key_buf->w_buff.dev_buffer.d_p_addr);
+		ASSIGN64(dh_key->z, dh_key_buf->z_buff.dev_buffer.d_p_addr);
 		break;
 
 	}
