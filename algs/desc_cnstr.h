@@ -66,6 +66,10 @@ struct buffer_info {
 
 typedef struct buffer_info buffer_info_t;
 
+typedef struct rsa_keygen_op_buffers {
+	buffer_info_t n_buff;
+} rsa_keygen_op_buffers_t;
+
 typedef struct rsa_pub_op_buffers {
 	buffer_info_t n_buff;
 	buffer_info_t e_buff;
@@ -121,15 +125,18 @@ typedef struct dsa_verify_buffers {
 	buffer_info_t ab_buff;
 } dsa_verify_buffers_t;
 
-typedef struct dsa_keygen_buffers {
-	buffer_info_t desc_buff;
+typedef struct keygen_buffers {
 	buffer_info_t q_buff;
 	buffer_info_t r_buff;
 	buffer_info_t g_buff;
 	buffer_info_t prvkey_buff;
 	buffer_info_t pubkey_buff;
 	buffer_info_t ab_buff;
-} dsa_keygen_buffers_t;
+} keygen_buffers_t;
+
+typedef struct keygen_buffers  dsa_keygen_buffers_t;
+
+typedef struct keygen_buffers dh_keygen_buffers_t;
 
 typedef struct dh_key_buffers {
 	buffer_info_t q_buff;
@@ -139,15 +146,6 @@ typedef struct dh_key_buffers {
 	buffer_info_t ab_buff;
 } dh_key_buffers_t;
 
-typedef struct dh_keygen_buffers {
-    buffer_info_t   desc_buff;
-    buffer_info_t   q_buff;
-    buffer_info_t   r_buff;
-    buffer_info_t   g_buff;
-    buffer_info_t   prvkey_buff;
-    buffer_info_t   pubkey_buff;
-    buffer_info_t   ab_buff;
-}dh_keygen_buffers_t;
 
 typedef struct rng_init_buffers {
 	buffer_info_t desc_buff;
@@ -192,6 +190,7 @@ typedef struct symm_ablk_buffers {
 } symm_ablk_buffers_t;
 
 typedef union crypto_buffers {
+	rsa_keygen_op_buffers_t rsa_keygen_op;
 	rsa_pub_op_buffers_t rsa_pub_op;
 	rsa_priv1_op_buffers_t rsa_priv1_op;
 	rsa_priv2_op_buffers_t rsa_priv2_op;

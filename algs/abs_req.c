@@ -42,11 +42,13 @@
 #include "abs_req.h"
 
 enum {
+	SKMM_RSA_KEYGEN,
 	SKMM_RSA_PUB_OP,
 	SKMM_RSA_PRV_OP_1K,
 	SKMM_RSA_PRV_OP_2K,
 	SKMM_RSA_PRV_OP_4K,
 	SKMM_DSA_VERIFY,
+	SKMM_DSA_SIGN_512,
 	SKMM_DSA_SIGN_1K,
 	SKMM_DSA_SIGN_2K,
 	SKMM_DSA_SIGN_4K,
@@ -110,8 +112,9 @@ static int get_abs_req_type(struct pkc_request *req, void *buffer)
 
 	print_debug("req->type : %d\n", type);
 	switch (type) {
+	case RSA_KEYGEN:
+		return SKMM_RSA_KEYGEN;
 	case RSA_PUB:
-
 		return SKMM_RSA_PUB_OP;
 	case RSA_PRIV_FORM1:
 	case RSA_PRIV_FORM2:
@@ -137,7 +140,9 @@ static int get_abs_req_type(struct pkc_request *req, void *buffer)
 	case DSA_SIGN:
 		dsa_sign = &req->req_u.dsa_sign;
 
-		if (dsa_sign->q_len == 128)
+		if (dsa_sign->q_len == 64)
+			return SKMM_DSA_SIGN_512;
+		else if (dsa_sign->q_len == 128)
 			return SKMM_DSA_SIGN_1K;
 		else if (dsa_sign->q_len == 256)
 			return SKMM_DSA_SIGN_2K;
@@ -154,7 +159,7 @@ static int get_abs_req_type(struct pkc_request *req, void *buffer)
 		dh_key = &req->req_u.dh_req;
 
 		print_debug("key size is %d\n", dh_key->z_len);
-		if (dh_key->z_len = 128)
+		if (dh_key->z_len == 128)
 			return SKMM_DH_1K;
 		else if (dh_key->z_len == 256)
 			return SKMM_DH_2K;
@@ -167,6 +172,8 @@ static int get_abs_req_type(struct pkc_request *req, void *buffer)
 		}
 	case ECDH_COMPUTE_KEY:
 		return SKMM_ECDH;
+	case DLC_KEYGEN:
+		return SKMM_DSA_KEYGEN;
 	}
 
 	return 0;
@@ -174,8 +181,10 @@ static int get_abs_req_type(struct pkc_request *req, void *buffer)
 
 void constr_abs_req(crypto_mem_info_t *c_mem, struct pkc_request *req)
 {
+	rsa_keygen_op_buffers_t *rsa_keygen_buf;
 	rsa_pub_op_buffers_t *rsa_pub_buf;
 	rsa_priv3_op_buffers_t *rsa_priv3_buf;
+	struct rsa_keygen *rsa_keygen;
 	struct rsa_pub *rsa_pub;
 	struct rsa_priv3 *rsa_priv3;
 
@@ -183,6 +192,9 @@ void constr_abs_req(crypto_mem_info_t *c_mem, struct pkc_request *req)
 	dsa_verify_buffers_t *dsa_verify_buf;
 	struct dsa_sign *dsa_sign;
 	struct dsa_verify *dsa_verify;
+
+	keygen_buffers_t *keygen_buf;
+	struct keygen *keygen;
 
 	dh_key_buffers_t *dh_key_buf;
 	struct dh_key *dh_key;
@@ -202,6 +214,14 @@ void constr_abs_req(crypto_mem_info_t *c_mem, struct pkc_request *req)
 	ASSIGN32(abs_req->req_type, abs_req_type);
 
 	switch (type) {
+	case RSA_KEYGEN:
+		rsa_keygen = &abs_req->req_data.rsa_keygen;
+		rsa_keygen_buf = (rsa_keygen_op_buffers_t *)c_mem->buffers;
+
+		ASSIGN64(rsa_keygen->n,
+				rsa_keygen_buf->n_buff.dev_buffer.d_p_addr);
+		ASSIGN32(rsa_keygen->n_len, rsa_keygen_buf->n_buff.len);
+		break;
 	case RSA_PUB:
 		rsa_pub = &abs_req->req_data.rsa_pub;
 		rsa_pub_buf = (rsa_pub_op_buffers_t *)c_mem->buffers;
@@ -236,16 +256,19 @@ void constr_abs_req(crypto_mem_info_t *c_mem, struct pkc_request *req)
 		dsa_sign = &abs_req->req_data.dsa_sign;
 		dsa_sign_buf = (dsa_sign_buffers_t *)c_mem->buffers;
 
+		ASSIGN64(dsa_sign->q, dsa_sign_buf->q_buff.dev_buffer.d_p_addr);
+		ASSIGN64(dsa_sign->r, dsa_sign_buf->r_buff.dev_buffer.d_p_addr);
+		ASSIGN64(dsa_sign->g, dsa_sign_buf->g_buff.dev_buffer.d_p_addr);
 		ASSIGN64(dsa_sign->f, dsa_sign_buf->m_buff.dev_buffer.d_p_addr);
 		ASSIGN64(dsa_sign->c, dsa_sign_buf->c_buff.dev_buffer.d_p_addr);
 		ASSIGN64(dsa_sign->d, dsa_sign_buf->d_buff.dev_buffer.d_p_addr);
 
+		ASSIGN32(dsa_sign->q_len, dsa_sign_buf->q_buff.len);
+		ASSIGN32(dsa_sign->r_len, dsa_sign_buf->r_buff.len);
+
 		if (type == ECDSA_SIGN)
 			ASSIGN64(dsa_sign->ab,
 				dsa_sign_buf->ab_buff.dev_buffer.d_p_addr);
-		break;
-	case DSA_KEYGEN:
-	case ECDSA_KEYGEN:
 		break;
 	case DSA_VERIFY:
 	case ECDSA_VERIFY:
@@ -273,7 +296,19 @@ void constr_abs_req(crypto_mem_info_t *c_mem, struct pkc_request *req)
 		ASSIGN32(dsa_verify->r_len, dsa_verify_buf->r_buff.len);
 
 		break;
+	case DLC_KEYGEN:
+		keygen = &abs_req->req_data.keygen;
+		keygen_buf = (keygen_buffers_t *)c_mem->buffers;
 
+		ASSIGN64(keygen->q, keygen_buf->q_buff.dev_buffer.d_p_addr);
+		ASSIGN64(keygen->r, keygen_buf->r_buff.dev_buffer.d_p_addr);
+		ASSIGN64(keygen->g, keygen_buf->g_buff.dev_buffer.d_p_addr);
+		ASSIGN64(keygen->pub_key,
+				keygen_buf->pubkey_buff.dev_buffer.d_p_addr);
+		ASSIGN32(keygen->q_len, keygen_buf->q_buff.len);
+		ASSIGN32(keygen->r_len, keygen_buf->r_buff.len);
+
+		break;
 	case DH_COMPUTE_KEY:
 	case ECDH_COMPUTE_KEY:
 		dh_key = &abs_req->req_data.dh_key;
@@ -285,7 +320,6 @@ void constr_abs_req(crypto_mem_info_t *c_mem, struct pkc_request *req)
 			ASSIGN64(dh_key->ab,
 				dh_key_buf->ab_buff.dev_buffer.d_p_addr);
 		break;
-
 	}
 
 	print_debug("abstract request offloaded\n");

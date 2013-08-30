@@ -84,6 +84,39 @@ static void rsa_op_done(void *ctx, int32_t res)
 #endif
 }
 
+static void rsa_keygen_op_init_len(struct rsa_keygen_req_s *keygen_req,
+					crypto_mem_info_t *mem_info)
+{
+	rsa_keygen_op_buffers_t *mem =
+		(rsa_keygen_op_buffers_t *)mem_info->buffers;
+
+	mem->n_buff.len = keygen_req->n_len;
+}
+
+static int rsa_keygen_op_cp_req(struct rsa_keygen_req_s *keygen_req,
+					crypto_mem_info_t *mem_info)
+{
+	rsa_keygen_op_buffers_t *mem =
+		(rsa_keygen_op_buffers_t *)mem_info->buffers;
+	rsa_keygen_op_init_len(keygen_req, mem_info);
+
+	/* Alloc mem requrd for crypto operation */
+	print_debug("\t \t Calling alloc_crypto_mem\n");
+	if (-ENOMEM == alloc_crypto_mem(mem_info))
+		return -ENOMEM;
+
+	mem->n_buff.v_mem = keygen_req->n;
+	print_debug("\t\t get buffer pointer\n");
+	memset(keygen_req->p, 0xff, keygen_req->p_len);
+	memset(keygen_req->q, 0xff, keygen_req->q_len);
+	memset(keygen_req->d, 0xff, keygen_req->d_len);
+	memset(keygen_req->dp, 0xff, keygen_req->dp_len);
+	memset(keygen_req->dq, 0xff, keygen_req->dq_len);
+	memset(keygen_req->c, 0xff, keygen_req->c_len);
+
+	return 0;
+}
+
 /* Memory copy functions */
 static void rsa_pub_op_init_len(struct rsa_pub_req_s *pub_req,
 				crypto_mem_info_t *mem_info)
@@ -155,6 +188,19 @@ static int rsa_pub_op_cp_req(struct rsa_pub_req_s *pub_req,
 	}
 #endif
 	return 0;
+}
+
+static void rsa_keygen_init_crypto_mem(crypto_mem_info_t *crypto_mem)
+{
+	rsa_keygen_op_buffers_t *keygen_op_buffs = NULL;
+	crypto_mem->count =
+		sizeof(rsa_keygen_op_buffers_t) / sizeof(buffer_info_t);
+	crypto_mem->buffers =
+		(buffer_info_t *) (&(crypto_mem->c_buffers.rsa_keygen_op));
+	memset(crypto_mem->buffers, 0, sizeof(rsa_keygen_op_buffers_t));
+
+	keygen_op_buffs = (rsa_keygen_op_buffers_t *)crypto_mem->buffers;
+	keygen_op_buffs->n_buff.bt = BT_OP;
 }
 
 static void rsa_pub_op_init_crypto_mem(crypto_mem_info_t *crypto_mem)
@@ -425,6 +471,7 @@ static int rsa_priv3_op_cp_req(struct rsa_priv_frm3_req_s *priv3_req,
 		return -ENOMEM;
 
 	mem->f_buff.v_mem = priv3_req->f;
+	mem->g_buff.v_mem = priv3_req->g;
 
 #ifdef DUMP_DEBUG_V_INFO
 	print_debug("\n[RSA PRIV3 OP]	Request Details :\n");
@@ -491,6 +538,7 @@ int rsa_op(struct pkc_request *req)
 
 	dev_dma_addr_t sec_dma = 0;
 	uint32_t r_id = 0;
+	rsa_keygen_op_buffers_t *keygen_op_buffs = NULL;
 	rsa_pub_op_buffers_t *pub_op_buffs = NULL;
 	rsa_priv1_op_buffers_t *priv1_op_buffs = NULL;
 	rsa_priv2_op_buffers_t *priv2_op_buffs = NULL;
@@ -556,6 +604,24 @@ int rsa_op(struct pkc_request *req)
 		    crypto_ctx->crypto_mem.pool);
 
 	switch (req->type) {
+	case RSA_KEYGEN:
+		rsa_keygen_init_crypto_mem(&crypto_ctx->crypto_mem);
+		keygen_op_buffs =
+			(rsa_keygen_op_buffers_t *)crypto_ctx->crypto_mem.buffers;
+
+		if (-ENOMEM == rsa_keygen_op_cp_req(&req->req_u.rsa_keygen,
+					&crypto_ctx->crypto_mem)) {
+			ret = -ENOMEM;
+			goto error;
+		}
+		print_debug("\t \t \t Rsa keygen op init mem complete.....\n");
+
+		/* Convert the buffers to dev */
+		host_to_dev(&crypto_ctx->crypto_mem);
+
+		print_debug("\t \t \t Host to dev convert complete....\n");
+
+		break;
 	case RSA_PUB:
 		rsa_pub_op_init_crypto_mem(&crypto_ctx->crypto_mem);
 		pub_op_buffs =

@@ -1272,7 +1272,7 @@ void handle_response(fsl_crypto_dev_t *dev, uint64_t desc, int32_t res)
 	    ("[DEQ] Dev sec desc :%0llx H sec desc :%p"
 	     "Ctx0 address :%p Ctx1 address :%p\n", desc, h_desc, ctx0, ctx1);
 #endif
-
+	print_debug("\n");
 	if (ctx0)
 		ctx0->op_done(ctx0, res);
 	else
@@ -1454,6 +1454,8 @@ int32_t process_response(fsl_crypto_dev_t *dev,
 #endif
 			resp_cnt =
 			    jobs_added - ring_cursor->counters->jobs_processed;
+
+			print_debug("response count :%d\n", resp_cnt);
 
 			if (!resp_cnt)
 				continue;

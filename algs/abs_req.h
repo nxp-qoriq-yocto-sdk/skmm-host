@@ -35,6 +35,11 @@
 #ifndef ABS_REQ_H
 #define ABS_REQ_H
 
+struct rsa_keygen {
+	dev_p_addr_t n;
+	u32 n_len;
+};
+
 struct rsa_pub {
 	dev_p_addr_t n;
 	dev_p_addr_t e;
@@ -49,6 +54,16 @@ struct rsa_priv3 {
 	dev_p_addr_t f;
 	dev_p_addr_t g;
 	u32 n_len;
+};
+
+struct keygen {
+	dev_p_addr_t q;
+	dev_p_addr_t r;
+	dev_p_addr_t g;
+	dev_p_addr_t pub_key;
+	dev_p_addr_t ab;
+	u32 q_len;
+	u32 r_len;
 };
 
 struct dsa_verify {
@@ -66,10 +81,16 @@ struct dsa_verify {
 };
 
 struct dsa_sign {
+	dev_p_addr_t q;
+	dev_p_addr_t r;
+	dev_p_addr_t g;
 	dev_p_addr_t f;
 	dev_p_addr_t c;
 	dev_p_addr_t d;
 	dev_p_addr_t ab;
+
+	u32 q_len;
+	u32 r_len;
 };
 
 struct dh_key {
@@ -81,11 +102,13 @@ struct dh_key {
 struct abs_req {
 	int req_type;
 	union {
+		struct rsa_keygen rsa_keygen;
 		struct rsa_pub rsa_pub;
 		struct rsa_priv3 rsa_priv3;
 		struct dsa_sign dsa_sign;
 		struct dsa_verify dsa_verify;
 		struct dh_key dh_key;
+		struct keygen keygen;
 	} req_data;
 };
 

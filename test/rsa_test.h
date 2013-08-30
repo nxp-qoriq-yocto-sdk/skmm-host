@@ -265,6 +265,7 @@ static uint8_t PRV3_F_1024[] = {
 	0Xe4, 0X99, 0X8c, 0X55, 0X46, 0Xe8, 0Xae, 0X01
 };
 #endif
+
 static int prv3_n_len = 128;
 
 /* ##################### 2048 TEST VECTORS ###################### */

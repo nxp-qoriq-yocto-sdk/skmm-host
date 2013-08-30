@@ -134,11 +134,9 @@ static void dh_keygen_init_len(struct dh_keygen_req_s *req, crypto_mem_info_t *m
     mem->pubkey_buff.len    =   req->pubkey_len;
     if(ecdh){
         mem->ab_buff.len    =   req->ab_len;
-        mem->desc_buff.len  =   sizeof(struct ecdh_keygen_desc_s);
     }
     else{
         mem->ab_buff.len    =   0;
-        mem->desc_buff.len  =   sizeof(struct dh_keygen_desc_s);
     }
 }
 
@@ -172,7 +170,7 @@ static int dh_keygen_cp_req(struct dh_keygen_req_s *req, crypto_mem_info_t *mem_
     print_debug("\t \t Calling alloc_crypto_mem \n \n");
     if(-ENOMEM == alloc_crypto_mem(mem_info))
         return -ENOMEM;
-#ifndef HOST_TO_DEV_MEMCPY
+#if 0
     memcpy(mem->q_buff.v_mem, req->q, mem->q_buff.len);
     memcpy(mem->r_buff.v_mem, req->r, mem->r_buff.len);
     memcpy(mem->g_buff.v_mem, req->g, mem->g_buff.len);
@@ -182,9 +180,9 @@ static int dh_keygen_cp_req(struct dh_keygen_req_s *req, crypto_mem_info_t *mem_
     else
        mem->ab_buff.v_mem     =   NULL;
 #else
-    mem->q_buff.req_ptr         =   req->q;
-    mem->r_buff.req_ptr         =   req->r;
-    mem->g_buff.req_ptr         =   req->g;
+    mem->q_buff.v_mem         =   req->q;
+    mem->r_buff.v_mem         =   req->r;
+    mem->g_buff.v_mem         =   req->g;
 
     if(ecdh)
        mem->ab_buff.req_ptr     =   req->ab;
@@ -298,7 +296,6 @@ static void constr_ecdh_key_desc(crypto_mem_info_t *mem_info, bool ecc_bin)
 #endif
 }
 
-#endif
 
 static void constr_ecdh_keygen_desc(crypto_mem_info_t *mem_info, bool ecc_bin)
 {
@@ -391,6 +388,7 @@ static void constr_dh_keygen_desc(crypto_mem_info_t *mem_info)
 #endif
 }
 
+#endif
 
 static void dh_key_init_crypto_mem(crypto_mem_info_t *crypto_mem, bool ecdh)
 {
@@ -513,42 +511,23 @@ int dh_op(struct pkc_request *req)
 	}
 
 	switch (req->type) {
+	case DH_KEYGEN:
+	case ECDH_KEYGEN:
+		dh_keygen_init_crypto_mem(&crypto_ctx->crypto_mem, ecdh);
+		dh_keygen_buffs =
+			(dh_keygen_buffers_t *)crypto_ctx->crypto_mem.buffers;
 
-    case DH_KEYGEN:
-    case ECDH_KEYGEN:
-            dh_keygen_init_crypto_mem(&crypto_ctx->crypto_mem, ecdh);
-            dh_keygen_buffs    =   (dh_keygen_buffers_t *)crypto_ctx->crypto_mem.buffers;
+		if(-ENOMEM == dh_keygen_cp_req(&req->req_u.dh_keygenreq,
+					&crypto_ctx->crypto_mem, ecdh)) {
+			ret = -ENOMEM;
+			goto error;
+		}
+		print_debug("\t \t \t DH init mem complete..... \n");
 
-            if(-ENOMEM == dh_keygen_cp_req(&req->req_u.dh_keygenreq, &crypto_ctx->crypto_mem, ecdh)) {
-				ret = -ENOMEM;
-                goto error;
-			}
-            print_debug("\t \t \t DH init mem complete..... \n");
+		/* Convert the buffers to dev */
+		host_to_dev(&crypto_ctx->crypto_mem);
 
-            /* Convert the buffers to dev */
-            host_to_dev(&crypto_ctx->crypto_mem);
-
-            print_debug("\t \t \t Host to dev convert complete.... \n");
-
-            /* Constr the hw desc */
-            if(ecdh)
-                constr_ecdh_keygen_desc(&crypto_ctx->crypto_mem, ecc_bin);
-            else
-                constr_dh_keygen_desc(&crypto_ctx->crypto_mem);
-            print_debug("\t \t \t Desc constr complete... \n");
-
-            sec_dma =   dh_keygen_buffs->desc_buff.dev_buffer.d_p_addr;
-
-            /* Store the context */
-		print_debug(KERN_ERR "[Enq] Desc addr   :%0llx Hbuffer addr    "
-				":%p    Crypto ctx      :%p \n",
-				dh_keygen_buffs->desc_buff.dev_buffer.d_p_addr,
-				dh_keygen_buffs->desc_buff.v_mem, crypto_ctx);
-
-            store_priv_data(crypto_ctx->crypto_mem.pool, dh_keygen_buffs->desc_buff.v_mem, (unsigned long)crypto_ctx);
-
-            break;
-                
+		break;
 	case DH_COMPUTE_KEY:
 	case ECDH_COMPUTE_KEY:
 		dh_key_init_crypto_mem(&crypto_ctx->crypto_mem, ecdh);
