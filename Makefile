@@ -104,10 +104,12 @@ DSA_TEST_KOBJ = "dsa_test"
 ECDSA_TEST_KOBJ = "ecdsa_test"
 DH_TEST_KOBJ = "dh_test"
 ECDH_TEST_KOBJ = "ecdh_test"
+PCI_DMA_TEST_KOBJ = "pci_dma_test"
 
 CONFIG_FSL_C2X0_CRYPTO_DRV=m
 
 obj-$(CONFIG_FSL_C2X0_CRYPTO_DRV) = $(DRIVER_KOBJ).o
+obj-m += $(PCI_DMA_TEST_KOBJ).o
 
 $(DRIVER_KOBJ)-objs := host_driver/fsl_c2x0_driver.o
 $(DRIVER_KOBJ)-objs += host_driver/fsl_c2x0_crypto_layer.o
@@ -146,6 +148,10 @@ $(DRIVER_KOBJ)-objs += test/ecdh_test.o
 $(DRIVER_KOBJ)-objs += test/ecdh_keygen_test.o
 $(DRIVER_KOBJ)-objs += test/test.o
 endif
+
+$(PCI_DMA_TEST_KOBJ)-objs := pci_dma_test/pci_dma_dev.o
+$(PCI_DMA_TEST_KOBJ)-objs += pci_dma_test/pci_dma_sys.o
+$(PCI_DMA_TEST_KOBJ)-objs += pci_dma_test/pci_dma_test.o
 
 .PHONY: build
 
