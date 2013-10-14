@@ -35,7 +35,6 @@
 
 /* #include "rsa_test.h" */
 extern fsl_pci_dev_t *g_fsl_pci_dev;
-extern int test_rsa_keygen_op_1k(void);
 extern int test_rsa_pub_op_1k(void);
 extern int test_rsa_pub_op_2k(void);
 extern int test_rsa_pub_op_4k(void);
@@ -79,7 +78,6 @@ extern int ecdh_keygen_test_p521(void);
 extern int ecdh_keygen_test_b283(void);
 extern int ecdh_keygen_test_b409(void);
 extern int ecdh_keygen_test_b571(void);
-extern void init_1k_rsa_keygen_op_req(void);
 extern void init_1k_rsa_pub_op_req(void);
 extern void init_2k_rsa_pub_op_req(void);
 extern void init_4k_rsa_pub_op_req(void);

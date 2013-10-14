@@ -204,7 +204,6 @@ void clean_all_test(void)
 
 void init_all_test(void)
 {
-	init_1k_rsa_keygen_op_req();
 	init_1k_rsa_pub_op_req();
 	init_2k_rsa_pub_op_req();
 	init_4k_rsa_pub_op_req();
@@ -253,9 +252,6 @@ int test(void *data)
 	if (!strcmp(test_name, "RSA_PUB_OP_1K")) {
 		print_debug("RSA_PUB_OP_1K invoking\n");
 		testfunc = test_rsa_pub_op_1k;
-	} else if (!strcmp(test_name, "RSA_KEYGEN_OP_1K")) {
-		print_debug("RSA_KEYGEN_OP_1K invoking\n");
-		testfunc = test_rsa_keygen_op_1k;
 	} else if (!strcmp(test_name, "RSA_PUB_OP_2K")) {
 		print_debug("RSA_PUB_OP_2K invoking\n");
 		testfunc = test_rsa_pub_op_2k;

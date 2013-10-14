@@ -157,7 +157,7 @@ $(PCI_DMA_TEST_KOBJ)-objs += pci_dma_test/pci_dma_test.o
 
 build:
 	make -C $(KERNEL_DIR) SUBDIRS=`pwd` modules
-	$(CC)  -Wall perf/mini_calc/mini_calc.c -o mini_calc
+	$(CROSS_COMPILE)gcc  -Wall perf/mini_calc/mini_calc.c -o mini_calc -static
 
 modules_install:
 	make -C $(KERNEL_DIR) SUBDIRS=`pwd` modules_install

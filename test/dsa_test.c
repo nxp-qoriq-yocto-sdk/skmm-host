@@ -100,34 +100,52 @@ void dsa_sign_verify_verify_done(struct pkc_request *req, int32_t sec_result)
 void init_dsa_verify_test_1k(void)
 {
 	struct dsa_verify_req_s *dsa_verify;
+	u32 len;
+	void *buf;
+
+	len = ALIGN_LEN_TO_DMA(q_len) + ALIGN_LEN_TO_DMA(r_len) +
+		ALIGN_LEN_TO_DMA(g_len) + ALIGN_LEN_TO_DMA(pub_key_len) +
+		ALIGN_LEN_TO_DMA(m_len) + ALIGN_LEN_TO_DMA(d) * 2;
+
+	buf = kzalloc(len, GFP_DMA);
+	if (!buf) {
+		print_error("NO MEM\n");
+		return;
+	}
 
 	dsa_verify = &g_dsaverifyreq_1k.req_u.dsa_verify;
 	g_dsaverifyreq_1k.type = DSA_VERIFY;
 
-	dsa_verify->q = kzalloc(q_len, GFP_DMA);
+	dsa_verify->q = buf;
 	memcpy(dsa_verify->q, Q_1024, q_len);
 	dsa_verify->q_len = (q_len);
+	buf += ALIGN_LEN_TO_DMA(q_len);
 
-	dsa_verify->r = kzalloc(r_len, GFP_DMA);
+	dsa_verify->r = buf;
 	memcpy(dsa_verify->r, R_1024, r_len);
 	dsa_verify->r_len = (r_len);
+	buf += ALIGN_LEN_TO_DMA(r_len);
 
-	dsa_verify->g = kzalloc(g_len, GFP_DMA);
+	dsa_verify->g = buf;
 	memcpy(dsa_verify->g, G_1024, g_len);
 	dsa_verify->g_len = (g_len);
+	buf += ALIGN_LEN_TO_DMA(g_len);
 
-	dsa_verify->pub_key = kzalloc(pub_key_len, GFP_DMA);
+	dsa_verify->pub_key = buf;
 	memcpy(dsa_verify->pub_key, PUB_KEY_1024, pub_key_len);
 	dsa_verify->pub_key_len = (pub_key_len);
+	buf += ALIGN_LEN_TO_DMA(pub_key_len);
 
-	dsa_verify->m = kzalloc(pub_key_len, GFP_DMA);
+	dsa_verify->m = buf;
 	memcpy(dsa_verify->m, M_1024, m_len);
 	dsa_verify->m_len = (m_len);
+	buf += ALIGN_LEN_TO_DMA(m_len);
 
-	dsa_verify->c = kzalloc(sizeof(C), GFP_DMA);
+	dsa_verify->c = buf;
 	memcpy(dsa_verify->c, C, sizeof(C));
+	buf += ALIGN_LEN_TO_DMA(d);
 
-	dsa_verify->d = kzalloc(d, GFP_DMA);
+	dsa_verify->d = buf;
 	memcpy(dsa_verify->d, D, d);
 	dsa_verify->d_len = d;
 }
@@ -135,87 +153,144 @@ void init_dsa_verify_test_1k(void)
 void init_dsa_sign_test_1k(void)
 {
 	struct dsa_sign_req_s *dsa_sign = &g_dsasignreq_1k.req_u.dsa_sign;
+	void *buf;
+	u32 len;
+
 	g_dsasignreq_1k.type = DSA_SIGN;
 
-	dsa_sign->q = kzalloc(q_len, GFP_DMA);
+	len = ALIGN_LEN_TO_DMA(q_len) + ALIGN_LEN_TO_DMA(r_len) +
+		ALIGN_LEN_TO_DMA(g_len) + ALIGN_LEN_TO_DMA(m_len) +
+		ALIGN_LEN_TO_DMA(d_len) * 2;
+
+	buf = kzalloc(len, GFP_DMA);
+	if (!buf) {
+		print_error("NO MEM\n");
+		return;
+	}
+
+	dsa_sign->q = buf;
 	memcpy(dsa_sign->q, Q_1024, q_len);
 	dsa_sign->q_len = (q_len);
+	buf += ALIGN_LEN_TO_DMA(q_len);
 
-	dsa_sign->r = kzalloc(r_len, GFP_DMA);
+	dsa_sign->r = buf;
 	memcpy(dsa_sign->r, R_1024, r_len);
 	dsa_sign->r_len = (r_len);
+	buf += ALIGN_LEN_TO_DMA(r_len);
 
-	dsa_sign->g = kzalloc(g_len, GFP_DMA);
+	dsa_sign->g = buf;
 	memcpy(dsa_sign->g, G_1024, g_len);
 	dsa_sign->g_len = (g_len);
+	buf += ALIGN_LEN_TO_DMA(g_len);
 
-	dsa_sign->m = kzalloc(m_len, GFP_DMA);
+	dsa_sign->m = buf;
 	memcpy(dsa_sign->m, M_1024, m_len);
 	dsa_sign->m_len = (m_len);
+	buf += ALIGN_LEN_TO_DMA(m_len);
 
-	dsa_sign->c = kzalloc(d_len, GFP_DMA | GFP_DMA);
-	dsa_sign->d = kzalloc(d_len, GFP_DMA | GFP_DMA);
+	dsa_sign->c = buf;
+	buf += ALIGN_LEN_TO_DMA(d_len);
+	dsa_sign->d = buf;
 	dsa_sign->d_len = d_len;
 }
 
 void init_dsa_verify_test_2k(void)
 {
 	struct dsa_verify_req_s *dsa_verify;
+	void *buf;
+	u32 len;
+
+	len = ALIGN_LEN_TO_DMA(q_len_2048) + ALIGN_LEN_TO_DMA(r_len_2048) +
+		ALIGN_LEN_TO_DMA(g_len_2048) +
+		ALIGN_LEN_TO_DMA(pub_key_len_2048) +
+		ALIGN_LEN_TO_DMA(m_len_2048) +
+		ALIGN_LEN_TO_DMA(d_len_2048) * 2;
+
+	buf = kzalloc(len, GFP_DMA);
+	if (!buf) {
+		print_error("NO MEM\n");
+		return;
+	}
 
 	dsa_verify = &g_dsaverifyreq_2k.req_u.dsa_verify;
 	g_dsaverifyreq_2k.type = DSA_VERIFY;
 
-	dsa_verify->q = kzalloc(q_len_2048, GFP_DMA);
+	dsa_verify->q = buf;
 	memcpy(dsa_verify->q, Q_2048, q_len_2048);
 	dsa_verify->q_len = (q_len_2048);
+	buf += ALIGN_LEN_TO_DMA(q_len_2048);
 
-	dsa_verify->r = kzalloc(r_len_2048, GFP_DMA);
+	dsa_verify->r = buf;
 	memcpy(dsa_verify->r, R_2048, r_len_2048);
 	dsa_verify->r_len = (r_len_2048);
+	buf += ALIGN_LEN_TO_DMA(r_len_2048);
 
-	dsa_verify->g = kzalloc(g_len_2048, GFP_DMA);
+	dsa_verify->g = buf;
 	memcpy(dsa_verify->g, G_2048, g_len_2048);
 	dsa_verify->g_len = (g_len_2048);
+	buf += ALIGN_LEN_TO_DMA(g_len_2048);
 
-	dsa_verify->pub_key = kzalloc(pub_key_len_2048, GFP_DMA);
+	dsa_verify->pub_key = buf;
 	memcpy(dsa_verify->pub_key, PUB_KEY_2048, pub_key_len_2048);
 	dsa_verify->pub_key_len = (pub_key_len_2048);
+	buf += ALIGN_LEN_TO_DMA(pub_key_len_2048);
 
-	dsa_verify->m = kzalloc(m_len_2048, GFP_DMA);
+	dsa_verify->m = buf;
 	memcpy(dsa_verify->m, M_2048, m_len_2048);
 	dsa_verify->m_len = (m_len_2048);
+	buf += ALIGN_LEN_TO_DMA(m_len_2048);
 
-	dsa_verify->c = kzalloc(sizeof(C_2048), GFP_DMA);
+	dsa_verify->c = buf;
 	memcpy(dsa_verify->c, C_2048, sizeof(C_2048));
+	buf += ALIGN_LEN_TO_DMA(d_len_2048);
 
-	dsa_verify->d = kzalloc(d_2048, GFP_DMA);
+	dsa_verify->d = buf;
 	memcpy(dsa_verify->d, D_2048, d_2048);
 	dsa_verify->d_len = d_2048;
+	buf += ALIGN_LEN_TO_DMA(d_len_2048);
 }
 
 void init_dsa_sign_test_2k(void)
 {
 	struct dsa_sign_req_s *dsa_sign = &g_dsasignreq_2k.req_u.dsa_sign;
+	void *buf;
+	u32 len;
+
+	len = ALIGN_LEN_TO_DMA(q_len_2048) + ALIGN_LEN_TO_DMA(r_len_2048) +
+		ALIGN_LEN_TO_DMA(g_len_2048) + ALIGN_LEN_TO_DMA(m_len_2048) +
+		ALIGN_LEN_TO_DMA(d_len_2048) * 2;
+
+	buf = kzalloc(len, GFP_DMA);
+	if (!buf) {
+		print_error("NO MEM\n");
+		return;
+	}
+
 	g_dsasignreq_2k.type = DSA_SIGN;
 
-	dsa_sign->q = kzalloc(q_len_2048, GFP_DMA);
+	dsa_sign->q = buf;
 	memcpy(dsa_sign->q, Q_2048, q_len_2048);
 	dsa_sign->q_len = (q_len_2048);
+	buf += ALIGN_LEN_TO_DMA(q_len_2048);
 
-	dsa_sign->r = kzalloc(r_len_2048, GFP_DMA);
+	dsa_sign->r = buf;
 	memcpy(dsa_sign->r, R_2048, r_len_2048);
 	dsa_sign->r_len = (r_len_2048);
+	buf += ALIGN_LEN_TO_DMA(r_len_2048);
 
-	dsa_sign->g = kzalloc(g_len_2048, GFP_DMA);
+	dsa_sign->g = buf;
 	memcpy(dsa_sign->g, M_2048, g_len_2048);
 	dsa_sign->g_len = (g_len_2048);
+	buf += ALIGN_LEN_TO_DMA(g_len_2048);
 
-	dsa_sign->m = kzalloc(m_len_2048, GFP_DMA);
+	dsa_sign->m = buf;
 	memcpy(dsa_sign->m, M_2048, m_len_2048);
 	dsa_sign->m_len = (m_len_2048);
+	buf += ALIGN_LEN_TO_DMA(m_len_2048);
 
-	dsa_sign->c = kzalloc(d_len_2048, GFP_DMA | GFP_DMA);
-	dsa_sign->d = kzalloc(d_len_2048, GFP_DMA | GFP_DMA);
+	dsa_sign->c = buf;
+	buf += ALIGN_LEN_TO_DMA(d_len_2048);
+	dsa_sign->d = buf;
 	dsa_sign->d_len = d_len_2048;
 }
 
@@ -223,33 +298,54 @@ void init_dsa_verify_test_4k(void)
 {
 	struct dsa_verify_req_s *dsa_verify;
 
+	void *buf;
+	u32 len;
+
+	len = ALIGN_LEN_TO_DMA(q_len_4096) + ALIGN_LEN_TO_DMA(r_len_4096) +
+		ALIGN_LEN_TO_DMA(g_len_4096) +
+		ALIGN_LEN_TO_DMA(pub_key_len_4096) +
+		ALIGN_LEN_TO_DMA(m_len_4096) +
+		ALIGN_LEN_TO_DMA(d_len_4096) * 2;
+
+	buf = kzalloc(len, GFP_DMA);
+	if (!buf) {
+		print_error("NO MEM\n");
+		return;
+	}
+
 	dsa_verify = &g_dsaverifyreq_4k.req_u.dsa_verify;
 	g_dsaverifyreq_4k.type = DSA_VERIFY;
 
-	dsa_verify->q = kzalloc(q_len_4096, GFP_DMA);
+	dsa_verify->q = buf;
 	memcpy(dsa_verify->q, Q_4096, q_len_4096);
 	dsa_verify->q_len = (q_len_4096);
+	buf += ALIGN_LEN_TO_DMA(q_len_4096);
 
-	dsa_verify->r = kzalloc(r_len_4096, GFP_DMA);
+	dsa_verify->r = buf;
 	memcpy(dsa_verify->r, R_4096, r_len_4096);
 	dsa_verify->r_len = (r_len_4096);
+	buf += ALIGN_LEN_TO_DMA(r_len_4096);
 
-	dsa_verify->g = kzalloc(g_len_4096, GFP_DMA);
+	dsa_verify->g = buf;
 	memcpy(dsa_verify->g, G_4096, g_len_4096);
 	dsa_verify->g_len = (g_len_4096);
+	buf += ALIGN_LEN_TO_DMA(g_len_4096);
 
-	dsa_verify->pub_key = kzalloc(pub_key_len_4096, GFP_DMA);
+	dsa_verify->pub_key = buf;
 	memcpy(dsa_verify->pub_key, PUB_KEY_4096, pub_key_len_4096);
 	dsa_verify->pub_key_len = (pub_key_len_4096);
+	buf += ALIGN_LEN_TO_DMA(pub_key_len_4096);
 
-	dsa_verify->m = kzalloc(m_len_4096, GFP_DMA);
+	dsa_verify->m = buf;
 	memcpy(dsa_verify->m, M_4096, m_len_4096);
 	dsa_verify->m_len = (m_len_4096);
+	buf += ALIGN_LEN_TO_DMA(m_len_4096);
 
-	dsa_verify->c = kzalloc(sizeof(C_4096), GFP_DMA);
+	dsa_verify->c = buf;
 	memcpy(dsa_verify->c, C_4096, sizeof(C_4096));
+	buf += ALIGN_LEN_TO_DMA(d_len_4096);
 
-	dsa_verify->d = kzalloc(d_4096, GFP_DMA);
+	dsa_verify->d = buf;
 	memcpy(dsa_verify->d, D_4096, d_4096);
 	dsa_verify->d_len = d_4096;
 }
@@ -257,26 +353,45 @@ void init_dsa_verify_test_4k(void)
 void init_dsa_sign_test_4k(void)
 {
 	struct dsa_sign_req_s *dsa_sign = &g_dsasignreq_4k.req_u.dsa_sign;
+
+	void *buf;
+	u32 len;
+
+	len = ALIGN_LEN_TO_DMA(q_len_4096) + ALIGN_LEN_TO_DMA(r_len_4096) +
+		ALIGN_LEN_TO_DMA(g_len_4096) + ALIGN_LEN_TO_DMA(m_len_4096) +
+		ALIGN_LEN_TO_DMA(d_len_4096) * 2;
+
+	buf = kzalloc(len, GFP_DMA);
+	if (!buf) {
+		print_error("NO MEM\n");
+		return;
+	}
+
 	g_dsasignreq_4k.type = DSA_SIGN;
 
-	dsa_sign->q = kzalloc(q_len_4096, GFP_DMA);
+	dsa_sign->q = buf;
 	memcpy(dsa_sign->q, Q_4096, q_len_4096);
 	dsa_sign->q_len = (q_len_4096);
+	buf += ALIGN_LEN_TO_DMA(q_len_4096);
 
-	dsa_sign->r = kzalloc(r_len_4096, GFP_DMA);
+	dsa_sign->r = buf;
 	memcpy(dsa_sign->r, R_4096, r_len_4096);
 	dsa_sign->r_len = (r_len_4096);
+	buf += ALIGN_LEN_TO_DMA(r_len_4096);
 
-	dsa_sign->g = kzalloc(g_len_4096, GFP_DMA);
+	dsa_sign->g = buf;
 	memcpy(dsa_sign->g, M_4096, g_len_4096);
 	dsa_sign->g_len = (g_len_4096);
+	buf += ALIGN_LEN_TO_DMA(g_len_4096);
 
-	dsa_sign->m = kzalloc(m_len_4096, GFP_DMA);
+	dsa_sign->m = buf;
 	memcpy(dsa_sign->m, M_4096, m_len_4096);
 	dsa_sign->m_len = (m_len_4096);
+	buf += ALIGN_LEN_TO_DMA(m_len_4096);
 
-	dsa_sign->c = kzalloc(d_len_4096, GFP_DMA | GFP_DMA);
-	dsa_sign->d = kzalloc(d_len_4096, GFP_DMA | GFP_DMA);
+	dsa_sign->c = buf;
+	buf += ALIGN_LEN_TO_DMA(d_len_4096);
+	dsa_sign->d = buf;
 	dsa_sign->d_len = d_len_4096;
 }
 
@@ -292,63 +407,14 @@ void cleanup_dsa_test(void)
 
 
 	kfree(g_dsasignreq_1k.req_u.dsa_sign.q);
-	kfree(g_dsasignreq_1k.req_u.dsa_sign.r);
-	kfree(g_dsasignreq_1k.req_u.dsa_sign.g);
-	kfree(g_dsasignreq_1k.req_u.dsa_sign.m);
-	kfree(g_dsasignreq_1k.req_u.dsa_sign.c);
-	kfree(g_dsasignreq_1k.req_u.dsa_sign.d);
 	kfree(g_dsasignreq_2k.req_u.dsa_sign.q);
-	kfree(g_dsasignreq_2k.req_u.dsa_sign.r);
-	kfree(g_dsasignreq_2k.req_u.dsa_sign.g);
-	kfree(g_dsasignreq_2k.req_u.dsa_sign.m);
-	kfree(g_dsasignreq_2k.req_u.dsa_sign.c);
-	kfree(g_dsasignreq_2k.req_u.dsa_sign.d);
 	kfree(g_dsasignreq_4k.req_u.dsa_sign.q);
-	kfree(g_dsasignreq_4k.req_u.dsa_sign.r);
-	kfree(g_dsasignreq_4k.req_u.dsa_sign.g);
-	kfree(g_dsasignreq_4k.req_u.dsa_sign.m);
-	kfree(g_dsasignreq_4k.req_u.dsa_sign.c);
-	kfree(g_dsasignreq_4k.req_u.dsa_sign.d);
 
 	kfree(dsa_verify_1k->q);
 
-	kfree(dsa_verify_1k->r);
-
-	kfree(dsa_verify_1k->g);
-
-	kfree(dsa_verify_1k->pub_key);
-
-	kfree(dsa_verify_1k->m);
-
-	kfree(dsa_verify_1k->c);
-	kfree(dsa_verify_1k->d);
-
 	kfree(dsa_verify_2k->q);
 
-	kfree(dsa_verify_2k->r);
-
-	kfree(dsa_verify_2k->g);
-
-	kfree(dsa_verify_2k->pub_key);
-
-	kfree(dsa_verify_2k->m);
-
-	kfree(dsa_verify_2k->c);
-
-	kfree(dsa_verify_2k->d);
-
 	kfree(dsa_verify_4k->q);
-
-	kfree(dsa_verify_4k->r);
-
-	kfree(dsa_verify_4k->g);
-
-	kfree(dsa_verify_4k->pub_key);
-
-
-	kfree(dsa_verify_4k->c);
-
-	kfree(dsa_verify_4k->d);
 }
 
 int dsa_verify_test_1k(void)
