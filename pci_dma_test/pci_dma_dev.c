@@ -164,7 +164,7 @@ static struct fsl_pcidma_dev *pcidma_dev_init(struct pci_dev *pdev)
 		/* Read the hardware address */
 		pcidma->bars[i].phy_addr = pci_resource_start(pdev, i);
 		pcidma->bars[i].size = pci_resource_len(pdev, i);
-		dev_info(&pdev->dev, "BAR:%d  addr:0x%llx len:0x%lld\n",
+		dev_dbg(&pdev->dev, "BAR:%d  addr:0x%llx len:0x%llx\n",
 			 i, pcidma->bars[i].phy_addr,
 			 (u64)pcidma->bars[i].size);
 	}

@@ -69,8 +69,8 @@ struct pcidma_test_info {
 	u32 loop;
 	u32 lens_num;
 	u32 lens[MAX_LENS_NUM];
-	u64 rc2ep_results[MAX_LENS_NUM];
-	u64 ep2rc_results[MAX_LENS_NUM];
+	u64 rc2ep_results[2][MAX_LENS_NUM]; /* RC to EP write/read results */
+	u64 ep2rc_results[2][MAX_LENS_NUM]; /* EP to RC write/read results */
 };
 
 struct pcidma_test {
@@ -78,11 +78,12 @@ struct pcidma_test {
 	struct pcidma_test_info *info;
 	struct pcidma_config *config;
 	u32 loop;
+	enum rw_type type;
 	size_t len;
-	void *src;
-	void *dest;
-	dma_addr_t src_addr;
-	dma_addr_t dest_addr;
+	void *local;
+	void *remote;
+	dma_addr_t local_addr;
+	dma_addr_t remote_addr;
 	struct dma_chan *chan;
 	struct completion done;
 	u64 result;

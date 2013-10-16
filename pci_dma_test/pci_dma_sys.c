@@ -69,10 +69,96 @@ config_info_show(struct device *dev, struct device_attribute *attr, char *buf)
 			ioread32be(&pcidma->config->status),
 			ioread32be(&pcidma->config->command));
 	str += sprintf(str, "\trx config: addr:0x%llx, size:0x%x, loop:0x%x\n",
-			(u64)ioread32be(&pcidma->config->rxcfg.hbar) << 32 |
-			ioread32be(&pcidma->config->rxcfg.lbar),
-			ioread32be(&pcidma->config->rxcfg.size),
-			ioread32be(&pcidma->config->rxcfg.loop));
+			(u64)ioread32be(&pcidma->config->rwcfg.hbar) << 32 |
+			ioread32be(&pcidma->config->rwcfg.lbar),
+			ioread32be(&pcidma->config->rwcfg.size),
+			ioread32be(&pcidma->config->rwcfg.loop));
+
+	return str - buf;
+}
+
+static ssize_t
+test_write_store(struct device *dev, struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	struct fsl_pcidma_dev *pcidma = get_pcidma(dev);
+	struct pcidma_test_info *info = pcidma->test_info;
+
+	if (!info || pcidma_test_running(info))
+		return -EIO;
+
+	if (kstrtoint(buf, 0, &info->write))
+		return -EINVAL;
+
+	return count;
+}
+
+static ssize_t
+test_write_show(struct device *dev, struct device_attribute *attr,
+		     char *buf)
+{
+	struct fsl_pcidma_dev *pcidma = get_pcidma(dev);
+	struct pcidma_test_info *info = pcidma->test_info;
+
+	if (!info)
+		return -EIO;
+
+	return sprintf(buf, "test write status: %s\n",
+			info->write ? "enabled" : "disabled");
+}
+
+static ssize_t
+test_read_store(struct device *dev, struct device_attribute *attr,
+		const char *buf, size_t count)
+{
+	struct fsl_pcidma_dev *pcidma = get_pcidma(dev);
+	struct pcidma_test_info *info = pcidma->test_info;
+
+	if (!info || pcidma_test_running(info))
+		return -EIO;
+
+	if (kstrtoint(buf, 0, &info->read))
+		return -EINVAL;
+
+	return count;
+}
+
+static ssize_t
+test_read_show(struct device *dev, struct device_attribute *attr,
+		     char *buf)
+{
+	struct fsl_pcidma_dev *pcidma = get_pcidma(dev);
+	struct pcidma_test_info *info = pcidma->test_info;
+
+	if (!info)
+		return -EIO;
+
+	return sprintf(buf, "test read status: %s\n",
+			info->read ? "enabled" : "disabled");
+}
+
+static ssize_t
+test_info_rw_show(struct pcidma_test_info *info, char *buf, enum rw_type type)
+{
+	char *str = buf;
+	int i;
+
+	str += sprintf(str, "%s test info:\n",
+		       type == RW_TYPE_WRITE ? "write" : "read");
+
+	for (i = 0; i < info->lens_num; i++) {
+		str += sprintf(str,
+			       "\ttest%d packet length:%uB loop:%utimes\n",
+			       i, info->lens[i], info->loop);
+
+		if (info->rc2ep)
+			str += sprintf(str,
+				       "\t\tRC->EP throughput:%lldMbps\n",
+				       info->rc2ep_results[type][i] / 1000000);
+		if (info->ep2rc)
+			str += sprintf(str, "\t\tEP->RC throughput:%lldMbps\n",
+				info->ep2rc_results[type][i] / 1000000);
+	}
 
 	return str - buf;
 }
@@ -83,7 +169,6 @@ test_info_show(struct device *dev, struct device_attribute *attr, char *buf)
 	struct fsl_pcidma_dev *pcidma = get_pcidma(dev);
 	struct pcidma_test_info *info = pcidma->test_info;
 	char *str = buf;
-	int i;
 
 	if (!info)
 		return 0;
@@ -93,18 +178,10 @@ test_info_show(struct device *dev, struct device_attribute *attr, char *buf)
 		return str - buf;
 	}
 
-	str += sprintf(buf, "test info:\n");
-	for (i = 0; i < info->lens_num; i++) {
-		str += sprintf(str,
-			       "\ttest%d packet length:%uB loop:%utimes\n",
-				 i, info->lens[i], info->loop);
-		if (info->rc2ep)
-			str += sprintf(str, "\t\tRC->EP throughput:%lldMbps\n",
-				info->rc2ep_results[i] / 1000000);
-		if (info->ep2rc)
-			str += sprintf(str, "\t\tEP->RC throughput:%lldMbps\n",
-				info->ep2rc_results[i] / 1000000);
-	}
+	if (info->write)
+		str += test_info_rw_show(info, str, RW_TYPE_WRITE);
+	if (info->read)
+		str += test_info_rw_show(info, str, RW_TYPE_READ);
 
 	return str - buf;
 }
@@ -246,7 +323,7 @@ test_dma_enable_show(struct device *dev, struct device_attribute *attr,
 		return -EIO;
 
 	return sprintf(buf, "test dma status: %s\n",
-			info->dma_enable ? "enable" : "disable");
+			info->dma_enable ? "enabled" : "disabled");
 }
 
 static ssize_t
@@ -303,6 +380,8 @@ struct device_attribute pcidma_attrs[] = {
 	__ATTR_RO(config_info),
 	__ATTR_RO(test_info),
 	__ATTR(test_start, S_IRUGO|S_IWUSR, test_start_show, test_start_store),
+	__ATTR(test_write, S_IRUGO|S_IWUSR, test_write_show, test_write_store),
+	__ATTR(test_read, S_IRUGO|S_IWUSR, test_read_show, test_read_store),
 	__ATTR(test_ep2rc, S_IRUGO|S_IWUSR, test_ep2rc_show, test_ep2rc_store),
 	__ATTR(test_rc2ep, S_IRUGO|S_IWUSR, test_rc2ep_show, test_rc2ep_store),
 	__ATTR(test_dma_enable, S_IRUGO|S_IWUSR, test_dma_enable_show,

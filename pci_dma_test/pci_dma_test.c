@@ -117,23 +117,44 @@ void pcidma_test_info_dump(struct pcidma_test_info *info)
 {
 	int i;
 
-	pr_info("\ntest info:\n");
+	if (info->write) {
+		pr_info("\n%s test info:\n", "write");
 
-	for (i = 0; i < info->lens_num; i++) {
-		pr_info("\ttest%d packet length:%uB loop:%utimes\n",
-			i, info->lens[i], info->loop);
-		if (info->rc2ep)
-			pr_info("\t\tRC->EP throughput:%lldMbps\n",
-				info->rc2ep_results[i] / 1000000);
-		if (info->ep2rc)
-			pr_info("\t\tEP->RC throughput:%lldMbps\n",
-				info->ep2rc_results[i] / 1000000);
+		for (i = 0; i < info->lens_num; i++) {
+			pr_info("\ttest%d packet length:%uB loop:%utimes\n",
+				i, info->lens[i], info->loop);
+			if (info->rc2ep)
+				pr_info("\t\tRC->EP throughput:%lldMbps\n",
+					info->rc2ep_results[RW_TYPE_WRITE][i] /
+					1000000);
+			if (info->ep2rc)
+				pr_info("\t\tEP->RC throughput:%lldMbps\n",
+					info->ep2rc_results[RW_TYPE_WRITE][i] /
+					1000000);
+		}
+	}
+
+	if (info->read) {
+		pr_info("\n%s test info:\n", "read");
+
+		for (i = 0; i < info->lens_num; i++) {
+			pr_info("\ttest%d packet length:%uB loop:%utimes\n",
+				i, info->lens[i], info->loop);
+			if (info->rc2ep)
+				pr_info("\t\tRC->EP throughput:%lldMbps\n",
+					info->rc2ep_results[RW_TYPE_READ][i] /
+					1000000);
+			if (info->ep2rc)
+				pr_info("\t\tEP->RC throughput:%lldMbps\n",
+					info->ep2rc_results[RW_TYPE_READ][i] /
+					1000000);
+		}
 	}
 };
 
 static int pcidma_memcmp_test(struct pcidma_test *rc2ep)
 {
-	return memcmp((void *)rc2ep->dest, rc2ep->src, rc2ep->len);
+	return memcmp((void *)rc2ep->remote, rc2ep->local, rc2ep->len);
 }
 
 static void pcidma_rc2ep_test_free(struct pcidma_test *rc2ep)
@@ -143,14 +164,14 @@ static void pcidma_rc2ep_test_free(struct pcidma_test *rc2ep)
 	if (rc2ep->chan)
 		dmaengine_put();
 
-	if (rc2ep->dest)
-		iounmap(rc2ep->dest);
+	if (rc2ep->remote)
+		iounmap(rc2ep->remote);
 
-	if (rc2ep->src)
+	if (rc2ep->local)
 		pci_free_consistent(info->pcidma->pdev,
 				    info->pcidma->bars[PCI_BUFF_BAR].size,
-				    rc2ep->src,
-				    rc2ep->src_addr);
+				    rc2ep->local,
+				    rc2ep->local_addr);
 
 	kfree(rc2ep);
 
@@ -178,24 +199,24 @@ static struct pcidma_test *pcidma_rc2ep_test_init(struct pcidma_test_info *info)
 		pr_debug("get chan %d\n", rc2ep->chan->chan_id);
 	}
 
-	rc2ep->dest_addr = info->pcidma->bars[PCI_BUFF_BAR].phy_addr;
-	rc2ep->dest = ioremap(info->pcidma->bars[PCI_BUFF_BAR].phy_addr,
+	rc2ep->remote_addr = info->pcidma->bars[PCI_BUFF_BAR].phy_addr;
+	rc2ep->remote = ioremap(info->pcidma->bars[PCI_BUFF_BAR].phy_addr,
 			      info->pcidma->bars[PCI_BUFF_BAR].size);
-	if (!rc2ep->dest) {
-		pr_err("failed to call ioremap destnation space\n");
+	if (!rc2ep->remote) {
+		pr_err("failed to call ioremap destination space\n");
 		goto _err;
 	}
 
-	rc2ep->src = pci_alloc_consistent(info->pcidma->pdev,
+	rc2ep->local = pci_alloc_consistent(info->pcidma->pdev,
 				info->pcidma->bars[PCI_BUFF_BAR].size,
-				&rc2ep->src_addr);
+				&rc2ep->local_addr);
 
-	if (!rc2ep->src) {
-		pr_err("failed to call pci_alloc_consistent ");
+	if (!rc2ep->local) {
+		pr_err("failed to call pci_alloc_consistent\n");
 		goto _err;
 	}
 
-	memset(rc2ep->src, 0xa5, info->pcidma->bars[PCI_BUFF_BAR].size);
+	memset(rc2ep->local, 0xa5, info->pcidma->bars[PCI_BUFF_BAR].size);
 	rc2ep->info = info;
 
 	return rc2ep;
@@ -214,7 +235,8 @@ static void pcidma_rc2ep_dma_cb(void *arg)
 }
 
 static int pcidma_rc2ep_dma_test_one(struct pcidma_test *rc2ep,
-				     size_t len, u32 loop)
+				     size_t len, u32 loop,
+				     enum rw_type type)
 {
 	enum dma_ctrl_flags dma_flags = 0;
 	int status;
@@ -223,6 +245,7 @@ static int pcidma_rc2ep_dma_test_one(struct pcidma_test *rc2ep,
 
 	rc2ep->len = len;
 	rc2ep->loop = 0;
+	rc2ep->type = type;
 
 	dma_flags = DMA_CTRL_ACK | DMA_PREP_INTERRUPT |
 		    DMA_COMPL_SKIP_DEST_UNMAP;
@@ -235,11 +258,20 @@ static int pcidma_rc2ep_dma_test_one(struct pcidma_test *rc2ep,
 
 		init_completion(&rc2ep->done);
 
-		dma_desc = dma_dev->device_prep_dma_memcpy(rc2ep->chan,
-							   rc2ep->dest_addr,
-							   rc2ep->src_addr,
-							   rc2ep->len,
-							   dma_flags);
+		if (type == RW_TYPE_WRITE)
+			dma_desc = dma_dev->device_prep_dma_memcpy(rc2ep->chan,
+							rc2ep->remote_addr,
+							rc2ep->local_addr,
+							rc2ep->len,
+							dma_flags);
+		else if (type == RW_TYPE_READ)
+			dma_desc = dma_dev->device_prep_dma_memcpy(rc2ep->chan,
+							rc2ep->local_addr,
+							rc2ep->remote_addr,
+							rc2ep->len,
+							dma_flags);
+		else
+			goto _err;
 
 		if (!dma_desc) {
 			pr_err("DMA desc constr failed...\n");
@@ -306,15 +338,26 @@ _err:
 }
 
 static int pcidma_rc2ep_memcpy_test_one(struct pcidma_test *rc2ep,
-					u32 len, u32 loop)
+					u32 len, u32 loop,
+					enum rw_type type)
 {
 	int i;
 	ktime_t start, end;
+	void *dest, *src;
+
+	if (type == RW_TYPE_WRITE) {
+		dest = rc2ep->remote;
+		src = rc2ep->local;
+	} else if (type == RW_TYPE_READ) {
+		dest = rc2ep->local;
+		src = rc2ep->remote;
+	} else
+		goto _err;
 
 	start = ktime_get();
 
 	for (i = 0; i < loop; i++)
-		memcpy(rc2ep->dest, rc2ep->src, len);
+		memcpy(dest, src, len);
 
 	end = ktime_get();
 
@@ -328,37 +371,58 @@ static int pcidma_rc2ep_memcpy_test_one(struct pcidma_test *rc2ep,
 		  ktime_to_ns(ktime_sub(end, start)));
 
 	return 0;
+_err:
+	rc2ep->status = TEST_ERROR;
+	return -EINVAL;
+}
+
+static int pcidma_rc2ep_test_rw(struct pcidma_test_info *info,
+				 struct pcidma_test *rc2ep,
+				 enum rw_type type)
+{
+	int i;
+
+	for (i = 0; i < info->lens_num; i++) {
+		if (info->dma_enable)
+			pcidma_rc2ep_dma_test_one(rc2ep, info->lens[i],
+						  info->loop,
+						  type);
+		else
+			pcidma_rc2ep_memcpy_test_one(rc2ep, info->lens[i],
+						     info->loop,
+						     type);
+
+		if (rc2ep->status != TEST_DONE) {
+			info->rc2ep_results[type][i] = 0;
+			break;
+		}
+
+		info->rc2ep_results[type][i] = rc2ep->result;
+
+		pr_debug("%s-test%d length:%uB loop:%utimes throughput:%lluMbps\n",
+			 type == RW_TYPE_WRITE ? "write" : "read",
+			 i, info->lens[i], info->loop,
+			 info->rc2ep_results[type][i] / 1000000);
+	}
+
+	return 0;
 }
 
 static int pcidma_rc2ep_test(void *arg)
 {
 	struct pcidma_test_info *info = arg;
 	struct pcidma_test *rc2ep;
-	int i;
 
 	rc2ep = pcidma_rc2ep_test_init(info);
 	if (!rc2ep)
 		goto _done;
 
-	for (i = 0; i < info->lens_num; i++) {
-		if (info->dma_enable)
-			pcidma_rc2ep_dma_test_one(rc2ep, info->lens[i],
-						  info->loop);
-		else
-			pcidma_rc2ep_memcpy_test_one(rc2ep, info->lens[i],
-						     info->loop);
+	if (info->write)
+		pcidma_rc2ep_test_rw(info, rc2ep, RW_TYPE_WRITE);
 
-		if (rc2ep->status != TEST_DONE) {
-			info->rc2ep_results[i] = 0;
-			break;
-		}
+	if (info->read)
+		pcidma_rc2ep_test_rw(info, rc2ep, RW_TYPE_READ);
 
-		info->rc2ep_results[i] = rc2ep->result;
-
-		pr_debug("test%d length %uB loop: %utimes throughput %lluMbps\n",
-			  i, info->lens[i], info->loop,
-			  info->rc2ep_results[i] / 1000000);
-	}
 
 	pcidma_rc2ep_test_free(rc2ep);
 
@@ -371,11 +435,11 @@ static void pcidma_ep2rc_test_free(struct pcidma_test *ep2rc)
 {
 	struct pcidma_test_info *info = ep2rc->info;
 
-	if (ep2rc->dest)
+	if (ep2rc->local)
 		pci_free_consistent(info->pcidma->pdev,
 				    info->pcidma->bars[PCI_BUFF_BAR].size,
-				    ep2rc->dest,
-				    ep2rc->dest_addr);
+				    ep2rc->local,
+				    ep2rc->local_addr);
 	kfree(ep2rc);
 
 	return;
@@ -389,10 +453,10 @@ static struct pcidma_test *pcidma_ep2rc_test_init(struct pcidma_test_info *info)
 	if (!ep2rc)
 		return NULL;
 
-	ep2rc->dest = pci_alloc_consistent(info->pcidma->pdev,
+	ep2rc->local = pci_alloc_consistent(info->pcidma->pdev,
 					info->pcidma->bars[PCI_BUFF_BAR].size,
-					&ep2rc->dest_addr);
-	if (!ep2rc->dest) {
+					&ep2rc->local_addr);
+	if (!ep2rc->local) {
 		pr_err("failed to call pci_alloc_consistent ");
 		goto _err;
 	}
@@ -419,30 +483,33 @@ static u32 pcidma_status(struct pcidma_config *config)
 
 static u64 pcidma_result(struct pcidma_config *config)
 {
-	return (u64)ioread32be(&config->rxcfg.hresult) << 32 |
-		ioread32be(&config->rxcfg.lresult);
+	return (u64)ioread32be(&config->rwcfg.hresult) << 32 |
+		ioread32be(&config->rwcfg.lresult);
 }
 
 static void pcidma_ep2rc_test_start(struct pcidma_test *ep2rc)
 {
 	struct pcidma_config *config = ep2rc->config;
 
-	iowrite32be(ep2rc->dest_addr >> 32, &config->rxcfg.hbar);
-	iowrite32be(ep2rc->dest_addr, &config->rxcfg.lbar);
-	iowrite32be(ep2rc->len, &config->rxcfg.size);
-	iowrite32be(ep2rc->loop, &config->rxcfg.loop);
+	iowrite32be(ep2rc->local_addr >> 32, &config->rwcfg.hbar);
+	iowrite32be(ep2rc->local_addr, &config->rwcfg.lbar);
+	iowrite32be(ep2rc->len, &config->rwcfg.size);
+	iowrite32be(ep2rc->loop, &config->rwcfg.loop);
+	iowrite32be(ep2rc->type, &config->rwcfg.type);
 
 	iowrite32be(PCIDMA_CMD_START, &config->command);
 }
 
 static int
-pcidma_ep2rc_test_one(struct pcidma_test *ep2rc, size_t len, int loop)
+pcidma_ep2rc_test_one(struct pcidma_test *ep2rc, size_t len, int loop,
+		      enum rw_type type)
 {
 	struct pcidma_config *config = ep2rc->config;
 	ktime_t start;
 
 	ep2rc->len = len;
 	ep2rc->loop = loop;
+	ep2rc->type = type;
 
 	if (pcidma_command(config) == PCIDMA_CMD_START) {
 		ep2rc->status = TEST_ERROR;
@@ -461,20 +528,21 @@ pcidma_ep2rc_test_one(struct pcidma_test *ep2rc, size_t len, int loop)
 	}
 
 	if (pcidma_command(config) == PCIDMA_CMD_START) {
-		pr_err("test timeout\n");
+		pr_err("ep2rc test timeout\n");
 		goto _err;
 	}
 
 	if (pcidma_status(config) != PCIDMA_STATUS_DONE) {
-		pr_err("test error\n");
+		pr_err("ep2rc test error\n");
 		goto _err;
 	}
 
 	ep2rc->result = pcidma_result(config);
 	ep2rc->status = TEST_DONE;
 
-	pr_debug("ep2rc test  size:%uB loop:%d  throughput:0x%lldMbps\n",
-		 loop, (u32)len, config->rxcfg.result64 / 1000000);
+	pr_debug("ep2rc %s-test  size:%uB loop:%d  throughput:0x%lldMbps\n",
+		 type == RW_TYPE_WRITE ? "write" : "read",
+		 loop, (u32)len, ep2rc->result / 1000000);
 
 	return 0;
 
@@ -483,26 +551,40 @@ _err:
 	return -EINVAL;
 }
 
+static int pcidma_ep2rc_test_rw(struct pcidma_test_info *info,
+				struct pcidma_test *ep2rc,
+				enum rw_type type)
+{
+	int i;
+
+	for (i = 0; i < info->lens_num; i++) {
+		pcidma_ep2rc_test_one(ep2rc, info->lens[i], info->loop, type);
+
+		if (ep2rc->status != TEST_DONE) {
+			info->ep2rc_results[type][i] = 0;
+			break;
+		}
+
+		info->ep2rc_results[type][i] = ep2rc->result;
+	}
+
+	return 0;
+}
+
 int pcidma_ep2rc_test(void *arg)
 {
 	struct pcidma_test_info *info = arg;
 	struct pcidma_test *ep2rc;
-	int i;
 
 	ep2rc = pcidma_ep2rc_test_init(info);
 	if (!ep2rc)
 		goto _done;
 
-	for (i = 0; i < info->lens_num; i++) {
-		pcidma_ep2rc_test_one(ep2rc, info->lens[i], info->loop);
+	if (info->write)
+		pcidma_ep2rc_test_rw(info, ep2rc, RW_TYPE_WRITE);
 
-		if (ep2rc->status != TEST_DONE) {
-			info->ep2rc_results[i] = 0;
-			break;
-		}
-
-		info->ep2rc_results[i] = ep2rc->result;
-	}
+	if (info->read)
+		pcidma_ep2rc_test_rw(info, ep2rc, RW_TYPE_READ);
 
 	pcidma_ep2rc_test_free(ep2rc);
 

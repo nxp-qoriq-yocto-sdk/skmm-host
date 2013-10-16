@@ -29,8 +29,8 @@
  * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef _PCI_EP_DMA_CFG_H
-#define _PCI_EP_DMA_CFG_H
+#ifndef _PCIEP_DMA_CFG_H
+#define _PCIEP_DMA_CFG_H
 
 #define PCIDMA_CMD_NONE 0
 #define PCIDMA_CMD_START 1
@@ -40,7 +40,12 @@
 #define PCIDMA_STATUS_BUSY 2
 #define PCIDMA_STATUS_ERROR 4
 
-struct rx_config {
+enum rw_type {
+	RW_TYPE_WRITE,
+	RW_TYPE_READ
+};
+
+struct rw_config {
 	union {
 		struct {
 			u32 hbar;
@@ -50,6 +55,7 @@ struct rx_config {
 	};
 	u32 size;
 	u32 loop;
+	u32 type;
 	union {
 		struct {
 			u32 hresult;
@@ -62,7 +68,7 @@ struct rx_config {
 struct pcidma_config {
 	u32 command;
 	u32 status;
-	struct rx_config rxcfg;
+	struct rw_config rwcfg;
 };
 
-#endif /* _PCI_EP_DMA_CFG_H */
+#endif /* _PCIEP_DMA_CFG_H */
