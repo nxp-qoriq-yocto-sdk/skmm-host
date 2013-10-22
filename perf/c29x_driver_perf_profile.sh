@@ -300,10 +300,10 @@ perf_test()
 	then
 		if [ "$arch" == "ppc" ]
 		then
-			total_time_us="$(./mini_calc $total_time $cpu_frq)"
-			per_job_us="$(./mini_calc $total_time_us $repeat)"
+			total_time_us="$(mini_calc $total_time $cpu_frq)"
+			per_job_us="$(mini_calc $total_time_us $repeat)"
 			sec_us=1000000
-			t_job_s="$(./mini_calc $sec_us $per_job_us)"
+			t_job_s="$(mini_calc $sec_us $per_job_us)"
 		else
 			total_time_us=`echo "$total_time / $cpu_frq" | bc -l`
 			per_job_us=`echo "$total_time_us / $repeat" | bc -l`
@@ -313,10 +313,10 @@ perf_test()
 	else
 		if [ "$arch" == "ppc" ]
         then
-			t_job_s="$(./mini_calc $repeat $timer_dur)"
+			t_job_s="$(mini_calc $repeat $timer_dur)"
 			sec_us=1000000
 			tot_time=`expr $timer_dur \* $sec_us`
-			per_job_us="$(./mini_calc $tot_time $repeat)"
+			per_job_us="$(mini_calc $tot_time $repeat)"
 		else
 			t_job_s=`echo "$repeat / $timer_dur" | bc -l`
 			sec_us=1000000
