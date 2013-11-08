@@ -65,7 +65,7 @@ config_info_show(struct device *dev, struct device_attribute *attr, char *buf)
 	if (!pcidma->config)
 		return sprintf(buf, "NULL\n");
 
-	str += sprintf(str, "\tstatus:0x%08x commond:0x%08x\n",
+	str += sprintf(str, "\tstatus:0x%08x command:0x%08x\n",
 			ioread32be(&pcidma->config->status),
 			ioread32be(&pcidma->config->command));
 	str += sprintf(str, "\trx config: addr:0x%llx, size:0x%x, loop:0x%x\n",

@@ -542,7 +542,7 @@ pcidma_ep2rc_test_one(struct pcidma_test *ep2rc, size_t len, int loop,
 
 	pr_debug("ep2rc %s-test  size:%uB loop:%d  throughput:0x%lldMbps\n",
 		 type == RW_TYPE_WRITE ? "write" : "read",
-		 loop, (u32)len, ep2rc->result / 1000000);
+		 (u32)len, loop, ep2rc->result / 1000000);
 
 	return 0;
 
