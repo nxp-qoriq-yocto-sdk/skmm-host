@@ -88,9 +88,9 @@ struct pcidma_test_info *pcidma_test_info_init(struct fsl_pcidma_dev *pcidma)
 	info->pcidma = pcidma;
 	spin_lock_init(&info->lock);
 	info->rc2ep = 1;
-	info->ep2rc = 0;
+	info->ep2rc = 1;
 	info->write = 1;
-	info->read = 0;
+	info->read = 1;
 	info->dma_enable = 1;
 	info->lens_num = 6;
 	info->lens[0] = 64;
@@ -293,7 +293,7 @@ static int pcidma_rc2ep_dma_test_one(struct pcidma_test *rc2ep,
 		dma_async_issue_pending(dma_desc->chan);
 
 		tmo = wait_for_completion_timeout(&rc2ep->done,
-						  msecs_to_jiffies(3000));
+						  msecs_to_jiffies(5 * len));
 		if (tmo == 0) {
 			pr_err("Self-test copy timed out, disabling\n");
 			goto _err;
@@ -607,6 +607,9 @@ int pcidma_test_thread(void *arg)
 			kthread_create(pcidma_rc2ep_test, info, "%s_%s",
 				       pcidma->name, "rc2ep");
 		wake_up_process(info->rc2ep_thread);
+
+		wait_for_completion(&info->rc2ep_thread_done);
+		kthread_stop(info->rc2ep_thread);
 	}
 
 	if (info->ep2rc) {
@@ -615,18 +618,9 @@ int pcidma_test_thread(void *arg)
 			kthread_create(pcidma_ep2rc_test, info, "%s_%s",
 				       pcidma->name, "ep2rc");
 		wake_up_process(info->ep2rc_thread);
-	}
 
-	if (info->rc2ep_thread) {
-		wait_for_completion(&info->rc2ep_thread_done);
-		kthread_stop(info->rc2ep_thread);
-		info->rc2ep_thread = NULL;
-	}
-
-	if (info->ep2rc_thread) {
 		wait_for_completion(&info->ep2rc_thread_done);
 		kthread_stop(info->ep2rc_thread);
-		info->ep2rc_thread = NULL;
 	}
 
 	pcidma_test_status_set(info, TEST_DONE);
