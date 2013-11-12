@@ -92,14 +92,13 @@ struct pcidma_test_info *pcidma_test_info_init(struct fsl_pcidma_dev *pcidma)
 	info->write = 1;
 	info->read = 1;
 	info->dma_enable = 1;
-	info->lens_num = 6;
+	info->lens_num = 5;
 	info->lens[0] = 64;
 	info->lens[1] = 256;
 	info->lens[2] = 1024;
 	info->lens[3] = 4 * 1024;
 	info->lens[4] = 1024 * 1024;
-	info->lens[5] = 2 * 1024 * 1024;
-	info->loop = 500;
+	info->loop = 50;
 	pcidma_test_status_set(info, TEST_READY);
 
 	return info;
