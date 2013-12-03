@@ -210,12 +210,12 @@ void init_all_test(void)
 	init_1k_rsa_prv3_op_req();
 	init_2k_rsa_prv3_op_req();
 	init_4k_rsa_prv3_op_req();
-	init_dsa_verify_test_1k();
 	init_dsa_sign_test_1k();
-	init_dsa_verify_test_2k();
+	init_dsa_verify_test_1k();
 	init_dsa_sign_test_2k();
-	init_dsa_verify_test_4k();
+	init_dsa_verify_test_2k();
 	init_dsa_sign_test_4k();
+	init_dsa_verify_test_4k();
 	init_ecdh_test();
 	init_ecdsa_verify_test();
 	init_ecdsa_sign_test();
