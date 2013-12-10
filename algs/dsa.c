@@ -261,6 +261,7 @@ static int dsa_keygen_cp_req(struct keygen_req_s *req,
 		mem->ab_buff.v_mem = NULL;
 
 	mem->pubkey_buff.v_mem = req->pub_key;
+	mem->prvkey_buff.v_mem = req->priv_key;
 	memset(req->priv_key, 0xff, req->priv_key_len);
 
 	return 0;
