@@ -57,6 +57,35 @@ bars_info_show(struct device *dev, struct device_attribute *attr, char *buf)
 }
 
 static ssize_t
+link_info_show(struct device *dev, struct device_attribute *attr, char *buf)
+{
+	struct fsl_pcidma_dev *pcidma = get_pcidma(dev);
+	char *str = buf, *speed;
+	u16 link_status, width;
+
+	pcie_capability_read_word(pcidma->pdev, PCI_EXP_LNKSTA, &link_status);
+
+	switch (link_status & PCI_EXP_LNKSTA_CLS) {
+	case PCI_EXP_LNKSTA_CLS_2_5GB:
+		speed = "2.5GT/s";
+		break;
+	case PCI_EXP_LNKSTA_CLS_5_0GB:
+		speed = "5GT/s";
+		break;
+	default:
+		speed = "unknown";
+		break;
+	}
+
+	width = (link_status & PCI_EXP_LNKSTA_NLW) >> PCI_EXP_LNKSTA_NLW_SHIFT;
+
+	str += sprintf(str, "link info:\n");
+	str += sprintf(str, "\tlink width:%dx  speed:%s\n", width, speed);
+
+	return str - buf;
+}
+
+static ssize_t
 config_info_show(struct device *dev, struct device_attribute *attr, char *buf)
 {
 	struct fsl_pcidma_dev *pcidma = get_pcidma(dev);
@@ -376,6 +405,7 @@ test_length_show(struct device *dev, struct device_attribute *attr, char *buf)
 }
 
 struct device_attribute pcidma_attrs[] = {
+	__ATTR_RO(link_info),
 	__ATTR_RO(bars_info),
 	__ATTR_RO(config_info),
 	__ATTR_RO(test_info),
