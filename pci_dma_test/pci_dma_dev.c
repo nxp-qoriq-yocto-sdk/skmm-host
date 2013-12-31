@@ -74,6 +74,240 @@ static void pcidma_class_free(void)
 	class_unregister(&pcidma_class);
 }
 
+static irqreturn_t pcidma_intr(int irq, void *data)
+{
+	struct fsl_pcidma_dev *pcidma = data;
+
+	pr_debug("%s gets pcidma_intr interrupt %d\n", pcidma->name, irq);
+	return IRQ_HANDLED;
+}
+
+static irqreturn_t pcidma_intr_msi(int irq, void *data)
+{
+	struct fsl_pcidma_dev *pcidma = data;
+
+	pr_debug("%s gets pcidma_intr_msi interrupt %d\n", pcidma->name, irq);
+	return IRQ_HANDLED;
+}
+
+static irqreturn_t pcidma_intr_msix_other(int irq, void *data)
+{
+	struct fsl_pcidma_dev *pcidma = data;
+
+	pr_debug("%s gets msix_other interrupt %d\n", pcidma->name, irq);
+	return IRQ_HANDLED;
+}
+
+static irqreturn_t pcidma_intr_msix_tx(int irq, void *data)
+{
+	struct fsl_pcidma_dev *pcidma = data;
+
+	pr_debug("%s gets msix_tx interrupt %d\n", pcidma->name, irq);
+	return IRQ_HANDLED;
+}
+
+static irqreturn_t pcidma_intr_msix_rx(int irq, void *data)
+{
+	struct fsl_pcidma_dev *pcidma = data;
+
+	pr_debug("%s gets msix_rx interrupt %d\n", pcidma->name, irq);
+	return IRQ_HANDLED;
+}
+
+void pcidma_reset_interrupt_capability(struct fsl_pcidma_dev *pcidma)
+{
+	if (pcidma->msix_entries) {
+		pci_disable_msix(pcidma->pdev);
+		kfree(pcidma->msix_entries);
+		pcidma->msix_entries = NULL;
+	} else if (pcidma->flags & FLAG_MSI_ENABLED) {
+		pci_disable_msi(pcidma->pdev);
+		pcidma->flags &= ~FLAG_MSI_ENABLED;
+	}
+}
+
+/*
+ * pcidma_set_interrupt_capability - set MSI or MSI-X if supported
+ *
+ * Attempt to configure interrupts using the best available
+ * capabilities of the hardware and kernel.
+ */
+void pcidma_set_interrupt_capability(struct fsl_pcidma_dev *pcidma, int mode)
+{
+	int err, i;
+
+	/* Check whether the device has MSIx cap */
+	switch (mode) {
+	case PCIDMA_INT_MODE_MSIX:
+		if (pci_find_capability(pcidma->pdev, PCI_CAP_ID_MSIX)) {
+			pcidma->num_vectors = 3; /* RxQ0, TxQ0 and other */
+			pcidma->msix_entries =
+					kcalloc(pcidma->num_vectors,
+						sizeof(struct msix_entry),
+						GFP_KERNEL);
+			if (pcidma->msix_entries) {
+				for (i = 0; i < pcidma->num_vectors; i++)
+					pcidma->msix_entries[i].entry = i;
+
+				err = pci_enable_msix(pcidma->pdev,
+						      pcidma->msix_entries,
+						      pcidma->num_vectors);
+				if (err == 0) {
+					pcidma->int_mode = PCIDMA_INT_MODE_MSIX;
+					return;
+				}
+			}
+
+			/* MSI-X failed, so fall through and try MSI */
+			dev_warn(&pcidma->dev,
+				 "Failed to initialize MSI-X interrupts.  Falling back to MSI interrupts.\n");
+			pcidma_reset_interrupt_capability(pcidma);
+		}
+
+		/* Fall through */
+	case PCIDMA_INT_MODE_MSI:
+		if (!pci_enable_msi(pcidma->pdev)) {
+			pcidma->flags &= FLAG_MSI_ENABLED;
+			pcidma->int_mode = PCIDMA_INT_MODE_MSI;
+		} else
+			dev_warn(&pcidma->dev,
+				 "Failed to initialize MSI interrupts.  Falling back to legacy interrupts.\n");
+		/* Fall through */
+	case PCIDMA_INT_MODE_LEGACY:
+		pcidma->int_mode = PCIDMA_INT_MODE_LEGACY;
+		break;
+	case PCIDMA_INT_MODE_NONE:
+		pcidma->int_mode = PCIDMA_INT_MODE_NONE;
+		break;
+	}
+}
+
+/*
+ * pcidma_request_msix - Initialize MSI-X interrupts
+ *
+ * pcidma_request_msix allocates MSI-X vectors and requests interrupts from the
+ * kernel.
+ */
+
+static int pcidma_request_msix(struct fsl_pcidma_dev *pcidma)
+{
+	int err = 0, vector = 0;
+
+	snprintf(pcidma->rx_name, sizeof(pcidma->rx_name) - 1,
+			 "%s-rx", pcidma->name);
+
+	err = request_irq(pcidma->msix_entries[vector].vector,
+			  pcidma_intr_msix_rx, 0, pcidma->rx_name, pcidma);
+	if (err)
+		return err;
+
+	vector++;
+
+	snprintf(pcidma->tx_name, sizeof(pcidma->tx_name) - 1,
+		 "%s-tx", pcidma->name);
+
+	err = request_irq(pcidma->msix_entries[vector].vector,
+			  pcidma_intr_msix_tx, 0, pcidma->tx_name, pcidma);
+	if (err)
+		return err;
+
+	vector++;
+
+	err = request_irq(pcidma->msix_entries[vector].vector,
+			  pcidma_intr_msix_other, 0, pcidma->name, pcidma);
+	if (err)
+		return err;
+
+	return 0;
+}
+
+/**
+ * pcidma_request_irq - initialize interrupts
+ *
+ * Attempts to configure interrupts using the best available
+ * capabilities of the hardware and kernel.
+ **/
+static int pcidma_request_irq(struct fsl_pcidma_dev *pcidma)
+{
+	int err;
+
+	if (PCIDMA_INT_MODE_NONE == pcidma->int_mode)
+		return 0;
+
+	if (PCIDMA_INT_MODE_MSIX == pcidma->int_mode) {
+		err = pcidma_request_msix(pcidma);
+		if (!err)
+			return err;
+		/* fall back to MSI */
+		pcidma_reset_interrupt_capability(pcidma);
+		pcidma_set_interrupt_capability(pcidma, PCIDMA_INT_MODE_MSI);
+	}
+	if (pcidma->flags & FLAG_MSI_ENABLED) {
+		err = request_irq(pcidma->pdev->irq, pcidma_intr_msi, 0,
+				  pcidma->name, pcidma);
+		if (!err)
+			return err;
+
+		/* fall back to legacy interrupt */
+		pcidma_reset_interrupt_capability(pcidma);
+		pcidma_set_interrupt_capability(pcidma, PCIDMA_INT_MODE_LEGACY);
+	}
+
+	err = request_irq(pcidma->pdev->irq, pcidma_intr, IRQF_SHARED,
+			  pcidma->name, pcidma);
+	if (err)
+		dev_err(&pcidma->dev,
+			"Unable to allocate interrupt, Error: %d\n", err);
+
+	return err;
+}
+
+static void pcidma_free_irq(struct fsl_pcidma_dev *pcidma)
+{
+	if (pcidma->int_mode == PCIDMA_INT_MODE_NONE)
+		return;
+
+	if (pcidma->msix_entries) {
+		int vector = 0;
+
+		free_irq(pcidma->msix_entries[vector].vector, pcidma);
+		vector++;
+
+		free_irq(pcidma->msix_entries[vector].vector, pcidma);
+		vector++;
+
+		/* Other Causes interrupt vector */
+		free_irq(pcidma->msix_entries[vector].vector, pcidma);
+		return;
+	}
+
+	free_irq(pcidma->pdev->irq, pcidma);
+}
+
+/*
+ * pcidma_irq_disable - Mask off interrupt generation
+ */
+
+static void pcidma_irq_disable(struct fsl_pcidma_dev *pcidma)
+{
+
+	if (pcidma->msix_entries) {
+		int i;
+		for (i = 0; i < pcidma->num_vectors; i++)
+			synchronize_irq(pcidma->msix_entries[i].vector);
+	} else {
+		synchronize_irq(pcidma->pdev->irq);
+	}
+}
+
+/*
+ * pcidma_irq_enable - Enable default interrupt generation settings
+ */
+static void pcidma_irq_enable(struct fsl_pcidma_dev *pcidma)
+{
+	;
+}
+
 static int pcidma_vf_init(struct fsl_pcidma_dev *pcidma)
 {
 	struct pci_dev *pdev = pcidma->pdev;
@@ -120,6 +354,10 @@ static void pcidma_dev_free(struct fsl_pcidma_dev *pcidma)
 	if (pcidma->config)
 		pci_iounmap(pcidma->pdev, pcidma->config);
 
+	pcidma_irq_disable(pcidma);
+	pcidma_free_irq(pcidma);
+	pcidma_reset_interrupt_capability(pcidma);
+
 	pcidma_test_info_free(pcidma->test_info);
 
 	device_unregister(&pcidma->dev);
@@ -152,6 +390,7 @@ static struct fsl_pcidma_dev *pcidma_dev_init(struct pci_dev *pdev)
 	pcidma->dev.class = &pcidma_class;
 
 	dev_set_name(&pcidma->dev, "pcidma%d", pcidma_num++);
+	pcidma->name = dev_name(&pcidma->dev);
 
 	if (device_register(&pcidma->dev)) {
 		dev_err(&pdev->dev, "failed to register pcidma\n");
@@ -176,6 +415,10 @@ static struct fsl_pcidma_dev *pcidma_dev_init(struct pci_dev *pdev)
 			"%s failed to Map config space\n", pci_name(pdev));
 		goto _err;
 	}
+
+	pcidma_set_interrupt_capability(pcidma, PCIDMA_INT_MODE_MSIX);
+	pcidma_request_irq(pcidma);
+	pcidma_irq_enable(pcidma);
 
 	/* Init VF */
 	pcidma_vf_init(pcidma);

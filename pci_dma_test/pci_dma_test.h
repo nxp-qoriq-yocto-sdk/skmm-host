@@ -27,6 +27,14 @@
 
 #define MAX_LENS_NUM 16
 
+#define FLAG_MSI_ENABLED 1
+
+/* Interrupt modes, as used by the IntMode parameter */
+#define PCIDMA_INT_MODE_NONE		0
+#define PCIDMA_INT_MODE_LEGACY		1
+#define PCIDMA_INT_MODE_MSI		2
+#define PCIDMA_INT_MODE_MSIX		3
+
 /* PCI bar types */
 enum pci_bars {
 	PCI_CCSR_BAR = 0,
@@ -98,8 +106,9 @@ struct vf_info {
 
 struct fsl_pcidma_dev {
 	struct list_head node;
-	char name[32];
+	const char *name;
 	int flags;
+	int int_mode;
 	struct pci_dev *pdev;
 	struct device dev;
 	struct pcidma_config *config;
@@ -108,6 +117,8 @@ struct fsl_pcidma_dev {
 	struct vf_info *vf;
 	int num_vectors;
 	struct msix_entry *msix_entries;
+	char rx_name[32];
+	char tx_name[32];
 
 	struct pcidma_test_info *test_info;
 };
