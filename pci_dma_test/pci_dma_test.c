@@ -106,6 +106,9 @@ struct pcidma_test_info *pcidma_test_info_init(struct fsl_pcidma_dev *pcidma)
 
 void pcidma_test_info_free(struct pcidma_test_info *info)
 {
+	if (!info)
+		return;
+
 	while (pcidma_test_running(info))
 		msleep(100);
 
@@ -158,7 +161,7 @@ static int pcidma_memcmp_test(struct pcidma_test *rc2ep)
 
 static void pcidma_rc2ep_test_free(struct pcidma_test *rc2ep)
 {
-	struct pcidma_test_info *info = rc2ep->info;
+	struct fsl_pcidma_dev *pcidma = rc2ep->info->pcidma;
 
 	if (rc2ep->chan)
 		dmaengine_put();
@@ -167,10 +170,8 @@ static void pcidma_rc2ep_test_free(struct pcidma_test *rc2ep)
 		iounmap(rc2ep->remote);
 
 	if (rc2ep->local)
-		pci_free_consistent(info->pcidma->pdev,
-				    info->pcidma->bars[PCI_BUFF_BAR].size,
-				    rc2ep->local,
-				    rc2ep->local_addr);
+		free_pages((unsigned long)rc2ep->local,
+			   get_order(pcidma->bars[PCI_BUFF_BAR].size));
 
 	kfree(rc2ep);
 
@@ -180,6 +181,8 @@ static void pcidma_rc2ep_test_free(struct pcidma_test *rc2ep)
 static struct pcidma_test *pcidma_rc2ep_test_init(struct pcidma_test_info *info)
 {
 	struct pcidma_test *rc2ep;
+	struct fsl_pcidma_dev *pcidma = info->pcidma;
+	int order;
 
 	rc2ep = kzalloc(sizeof(*rc2ep), GFP_KERNEL);
 	if (!rc2ep) {
@@ -198,24 +201,22 @@ static struct pcidma_test *pcidma_rc2ep_test_init(struct pcidma_test_info *info)
 		pr_debug("get chan %d\n", rc2ep->chan->chan_id);
 	}
 
-	rc2ep->remote_addr = info->pcidma->bars[PCI_BUFF_BAR].phy_addr;
-	rc2ep->remote = ioremap(info->pcidma->bars[PCI_BUFF_BAR].phy_addr,
-			      info->pcidma->bars[PCI_BUFF_BAR].size);
+	rc2ep->remote_addr = pcidma->bars[PCI_BUFF_BAR].phy_addr;
+	rc2ep->remote = ioremap(pcidma->bars[PCI_BUFF_BAR].phy_addr,
+				pcidma->bars[PCI_BUFF_BAR].size);
 	if (!rc2ep->remote) {
 		pr_err("failed to call ioremap destination space\n");
 		goto _err;
 	}
 
-	rc2ep->local = pci_alloc_consistent(info->pcidma->pdev,
-				info->pcidma->bars[PCI_BUFF_BAR].size,
-				&rc2ep->local_addr);
+	order = get_order(pcidma->bars[PCI_BUFF_BAR].size);
+	rc2ep->local = (void *)__get_dma_pages(GFP_KERNEL, order);
 
 	if (!rc2ep->local) {
 		pr_err("failed to call pci_alloc_consistent\n");
 		goto _err;
 	}
 
-	memset(rc2ep->local, 0xa5, info->pcidma->bars[PCI_BUFF_BAR].size);
 	rc2ep->info = info;
 
 	return rc2ep;
@@ -237,8 +238,10 @@ static int pcidma_rc2ep_dma_test_one(struct pcidma_test *rc2ep,
 				     size_t len, u32 loop,
 				     enum rw_type type)
 {
+	struct fsl_pcidma_dev *pcidma = rc2ep->info->pcidma;
+	dma_addr_t src, dest;
+	int dma_direction, status;
 	enum dma_ctrl_flags dma_flags = 0;
-	int status;
 	ktime_t start, end;
 	u64 total_time = 0;
 
@@ -247,7 +250,31 @@ static int pcidma_rc2ep_dma_test_one(struct pcidma_test *rc2ep,
 	rc2ep->type = type;
 
 	dma_flags = DMA_CTRL_ACK | DMA_PREP_INTERRUPT |
-		    DMA_COMPL_SKIP_DEST_UNMAP;
+		    DMA_COMPL_SKIP_DEST_UNMAP |
+		    DMA_COMPL_SRC_UNMAP_SINGLE;
+
+	if (type == RW_TYPE_WRITE) {
+		memset(rc2ep->local, 0x12, len);
+		src = rc2ep->local_addr;
+		dest = rc2ep->remote_addr;
+		dma_direction = PCI_DMA_TODEVICE;
+	} else if (type == RW_TYPE_READ) {
+		memset(rc2ep->local, 0x34, len);
+		src = rc2ep->remote_addr;
+		dest = rc2ep->local_addr;
+		dma_direction = PCI_DMA_FROMDEVICE;
+	} else
+		goto _err;
+
+	rc2ep->local_addr = dma_map_single(&pcidma->pdev->dev,
+					   rc2ep->local,
+					   len,
+					   dma_direction);
+	if (dma_mapping_error(&pcidma->pdev->dev, rc2ep->local_addr)) {
+		pr_err("mapping error with src addr=%p len=0x%llx\n",
+			rc2ep->local, (u64)len);
+		goto _err;
+	}
 
 	while (!kthread_should_stop() && (rc2ep->loop < loop)) {
 		struct dma_device *dma_dev = rc2ep->chan->device;
@@ -257,24 +284,13 @@ static int pcidma_rc2ep_dma_test_one(struct pcidma_test *rc2ep,
 
 		init_completion(&rc2ep->done);
 
-		if (type == RW_TYPE_WRITE)
-			dma_desc = dma_dev->device_prep_dma_memcpy(rc2ep->chan,
-							rc2ep->remote_addr,
-							rc2ep->local_addr,
-							rc2ep->len,
-							dma_flags);
-		else if (type == RW_TYPE_READ)
-			dma_desc = dma_dev->device_prep_dma_memcpy(rc2ep->chan,
-							rc2ep->local_addr,
-							rc2ep->remote_addr,
-							rc2ep->len,
-							dma_flags);
-		else
-			goto _err;
-
+		dma_desc = dma_dev->device_prep_dma_memcpy(rc2ep->chan,
+							   dest, src,
+							   rc2ep->len,
+							   dma_flags);
 		if (!dma_desc) {
 			pr_err("DMA desc constr failed...\n");
-			goto _err;
+			goto _dma_err;
 		}
 
 		dma_desc->callback = pcidma_rc2ep_dma_cb;
@@ -283,7 +299,7 @@ static int pcidma_rc2ep_dma_test_one(struct pcidma_test *rc2ep,
 
 		if (dma_submit_error(dma_cookie)) {
 			pr_err("DMA submit error....\n");
-			goto _err;
+			goto _dma_err;
 		}
 
 		start = ktime_get();
@@ -295,7 +311,7 @@ static int pcidma_rc2ep_dma_test_one(struct pcidma_test *rc2ep,
 						  msecs_to_jiffies(5 * len));
 		if (tmo == 0) {
 			pr_err("Self-test copy timed out, disabling\n");
-			goto _err;
+			goto _dma_err;
 		}
 
 		status = dma_async_is_tx_complete(rc2ep->chan, dma_cookie,
@@ -305,32 +321,47 @@ static int pcidma_rc2ep_dma_test_one(struct pcidma_test *rc2ep,
 			       "got completion callback, "
 			       "but status is \'%s\'\n",
 			       status == DMA_ERROR ? "error" : "in progress");
-			goto _err;
+			goto _dma_err;
 		}
 
 		end = ktime_get();
 
 		if (rc2ep->info->verify) {
+			dma_sync_single_for_cpu(&pcidma->pdev->dev,
+						rc2ep->local_addr, len,
+						dma_direction);
+
 			if (pcidma_memcmp_test(rc2ep))
-				goto _err;
+				goto _test_err;
+
+			dma_sync_single_for_device(&pcidma->pdev->dev,
+						   rc2ep->local_addr, len,
+						   dma_direction);
 		}
 
 		rc2ep->loop++;
 		total_time += ktime_to_ns(ktime_sub(end, start));
 
-		pr_debug("%d times start:%lldns end:%lldns total time:%lldns\n",
-			  loop, ktime_to_ns(start),
-			  ktime_to_ns(end), total_time);
+		pr_debug("test loop%d take time:%lldns total time:%lldns\n",
+			  rc2ep->loop, ktime_to_ns(ktime_sub(end, start)),
+			  total_time);
 	}
 
 	if (rc2ep->loop == loop)
 		rc2ep->status = TEST_DONE;
 	else
-		goto _err;
+		goto _test_err;
 
 	rc2ep->result = (u64)(rc2ep->len * 8 * loop) * 1000000000 / total_time;
 
+	dma_unmap_single(&pcidma->pdev->dev, rc2ep->local_addr,
+			 len, dma_direction);
 	return 0;
+
+_test_err:
+_dma_err:
+	dma_unmap_single(&pcidma->pdev->dev, rc2ep->local_addr,
+			 len, dma_direction);
 _err:
 	rc2ep->status = TEST_ERROR;
 	return -EINVAL;
@@ -345,9 +376,11 @@ static int pcidma_rc2ep_memcpy_test_one(struct pcidma_test *rc2ep,
 	void *dest, *src;
 
 	if (type == RW_TYPE_WRITE) {
+		memset(rc2ep->local, 0x56, len);
 		dest = rc2ep->remote;
 		src = rc2ep->local;
 	} else if (type == RW_TYPE_READ) {
+		memset(rc2ep->local, 0x78, len);
 		dest = rc2ep->local;
 		src = rc2ep->remote;
 	} else
