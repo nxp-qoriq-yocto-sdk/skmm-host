@@ -92,12 +92,22 @@ struct pcidma_test_info *pcidma_test_info_init(struct fsl_pcidma_dev *pcidma)
 	info->write = 1;
 	info->read = 1;
 	info->dma_enable = 1;
-	info->lens_num = 5;
+	info->lens_num = 15;
 	info->lens[0] = 64;
-	info->lens[1] = 256;
-	info->lens[2] = 1024;
-	info->lens[3] = 4 * 1024;
-	info->lens[4] = 1024 * 1024;
+	info->lens[1] = 128;
+	info->lens[2] = 256;
+	info->lens[3] = 512;
+	info->lens[4] = 1024;
+	info->lens[5] = 2 * 1024;
+	info->lens[6] = 4 * 1024;
+	info->lens[7] = 8 * 1024;
+	info->lens[8] = 16 * 1024;
+	info->lens[9] = 32 * 1024;
+	info->lens[10] = 64 * 1024;
+	info->lens[11] = 128 * 1024;
+	info->lens[12] = 256 * 1024;
+	info->lens[13] = 512 * 1024;
+	info->lens[14] = 1024 * 1024;
 	info->loop = 50;
 	pcidma_test_status_set(info, TEST_READY);
 
