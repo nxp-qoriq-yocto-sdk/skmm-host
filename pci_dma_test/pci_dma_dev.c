@@ -370,6 +370,46 @@ static void pcidma_dev_free(struct fsl_pcidma_dev *pcidma)
 	kfree(pcidma);
 }
 
+static int pcidma_tune_caps(struct pci_dev *pdev)
+{
+	struct pci_dev *parent;
+	u16 pcaps, ecaps, ctl;
+	int rc_sup, ep_sup;
+
+	/* Find out supported and configured values for parent (root) */
+	parent = pdev->bus->self;
+	if (parent->bus->parent) {
+		dev_info(&pdev->dev, "Parent not root\n");
+		return -EINVAL;
+	}
+
+	if (!pci_is_pcie(parent) || !pci_is_pcie(pdev))
+		return -EINVAL;
+
+	pcie_capability_read_word(parent, PCI_EXP_DEVCAP, &pcaps);
+	pcie_capability_read_word(pdev, PCI_EXP_DEVCAP, &ecaps);
+
+	/* Find max payload supported by root, endpoint */
+	rc_sup = pcaps & PCI_EXP_DEVCAP_PAYLOAD;
+	ep_sup = ecaps & PCI_EXP_DEVCAP_PAYLOAD;
+
+	if (rc_sup > ep_sup)
+		rc_sup = ep_sup;
+
+	pcie_capability_clear_and_set_word(parent, PCI_EXP_DEVCTL,
+					   PCI_EXP_DEVCTL_PAYLOAD, rc_sup << 5);
+
+	pcie_capability_clear_and_set_word(pdev, PCI_EXP_DEVCTL,
+					   PCI_EXP_DEVCTL_PAYLOAD, rc_sup << 5);
+
+	pcie_capability_read_word(pdev, PCI_EXP_DEVCTL, &ctl);
+	dev_dbg(&pdev->dev, "MAX payload size is %dB, MAX read size is %dB.\n",
+		128 << ((ctl & PCI_EXP_DEVCTL_PAYLOAD) >> 5),
+		128 << ((ctl & PCI_EXP_DEVCTL_READRQ) >> 12));
+
+	return 0;
+}
+
 static struct fsl_pcidma_dev *pcidma_dev_init(struct pci_dev *pdev)
 {
 	struct fsl_pcidma_dev *pcidma;
@@ -467,6 +507,8 @@ static int fsl_pcidma_dev_probe(struct pci_dev *pdev,
 			goto _err;
 		}
 	}
+
+	pcidma_tune_caps(pdev);
 
 	/* Allocate memory for the new PCI device data structure */
 	pcidma = pcidma_dev_init(pdev);
