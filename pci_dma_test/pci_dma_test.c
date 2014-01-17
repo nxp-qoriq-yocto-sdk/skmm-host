@@ -565,7 +565,7 @@ pcidma_ep2rc_test_one(struct pcidma_test *ep2rc, size_t len, int loop,
 	while (pcidma_command(config) == PCIDMA_CMD_START) {
 		schedule();
 		if (ktime_to_ms(ktime_sub(ktime_get(), start)) >
-			len * loop * 1 /* 1ms */)
+			len * loop * 10 /* 10ms */)
 			break;
 	}
 
