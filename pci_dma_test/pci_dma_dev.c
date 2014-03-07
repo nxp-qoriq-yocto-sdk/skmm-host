@@ -49,9 +49,27 @@ static void pcidma_class_release(struct class *cls)
 	/* nothing to do */
 }
 
+struct attribute *pcidma_attrs [] = {
+	&pcidma_attr[0].attr,
+	&pcidma_attr[1].attr,
+	&pcidma_attr[2].attr,
+	&pcidma_attr[3].attr,
+	&pcidma_attr[4].attr,
+	&pcidma_attr[5].attr,
+	&pcidma_attr[6].attr,
+	&pcidma_attr[7].attr,
+	&pcidma_attr[8].attr,
+	&pcidma_attr[9].attr,
+	&pcidma_attr[10].attr,
+	&pcidma_attr[11].attr,
+	NULL,
+};
+
+ATTRIBUTE_GROUPS(pcidma);
+
 static struct class pcidma_class = {
 	.name = "pcidma",
-	.dev_attrs = pcidma_attrs,
+	.dev_groups = pcidma_groups,
 	.dev_release = pcidma_dev_release,
 	.class_release = pcidma_class_release,
 };

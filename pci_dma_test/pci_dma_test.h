@@ -123,7 +123,7 @@ struct fsl_pcidma_dev {
 	struct pcidma_test_info *test_info;
 };
 
-extern struct device_attribute pcidma_attrs[];
+extern struct device_attribute pcidma_attr[];
 
 int pcidma_test_start(struct fsl_pcidma_dev *pcidma);
 
