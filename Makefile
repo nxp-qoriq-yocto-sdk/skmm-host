@@ -139,7 +139,7 @@ PCI_DMA_TEST_KOBJ = "pci_dma_test"
 
 CONFIG_FSL_C2X0_CRYPTO_DRV=m
 
-#obj-$(CONFIG_FSL_C2X0_CRYPTO_DRV) = $(DRIVER_KOBJ).o
+obj-$(CONFIG_FSL_C2X0_CRYPTO_DRV) = $(DRIVER_KOBJ).o
 obj-m += $(PCI_DMA_TEST_KOBJ).o
 
 $(DRIVER_KOBJ)-objs := host_driver/fsl_c2x0_driver.o
