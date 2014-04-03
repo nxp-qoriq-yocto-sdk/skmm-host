@@ -26,6 +26,7 @@
 #include <linux/delay.h>
 #include <linux/dmaengine.h>
 #include <linux/ktime.h>
+#include <linux/version.h>
 
 #include "pci_dma_test.h"
 
@@ -259,7 +260,13 @@ static int pcidma_rc2ep_dma_test_one(struct pcidma_test *rc2ep,
 	rc2ep->loop = 0;
 	rc2ep->type = type;
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,12,0)
 	dma_flags = DMA_CTRL_ACK | DMA_PREP_INTERRUPT;
+#else
+	dma_flags = DMA_CTRL_ACK | DMA_PREP_INTERRUPT |
+			DMA_COMPL_SKIP_DEST_UNMAP |
+			DMA_COMPL_SRC_UNMAP_SINGLE;
+#endif
 
 	if (type == RW_TYPE_WRITE) {
 		memset(rc2ep->local, 0x12, len);
@@ -324,7 +331,11 @@ static int pcidma_rc2ep_dma_test_one(struct pcidma_test *rc2ep,
 
 		status = dma_async_is_tx_complete(rc2ep->chan, dma_cookie,
 						  NULL, NULL);
+#if LINUX_VERSION_CODE > KERNEL_VERSION(3,12,0)
 		if (status != DMA_COMPLETE) {
+#else
+		if (status != DMA_SUCCESS) {
+#endif
 			pr_err(
 			       "got completion callback, "
 			       "but status is \'%s\'\n",
