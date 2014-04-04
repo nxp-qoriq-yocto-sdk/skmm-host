@@ -26,6 +26,7 @@
 #include <linux/interrupt.h>
 #include <linux/init.h>
 #include <linux/module.h>
+#include <linux/version.h>
 
 #include "pci_dma_test.h"
 
@@ -49,27 +50,33 @@ static void pcidma_class_release(struct class *cls)
 	/* nothing to do */
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,11,0)
 struct attribute *pcidma_attrs [] = {
-	&pcidma_attr[0].attr,
-	&pcidma_attr[1].attr,
-	&pcidma_attr[2].attr,
-	&pcidma_attr[3].attr,
-	&pcidma_attr[4].attr,
-	&pcidma_attr[5].attr,
-	&pcidma_attr[6].attr,
-	&pcidma_attr[7].attr,
-	&pcidma_attr[8].attr,
-	&pcidma_attr[9].attr,
-	&pcidma_attr[10].attr,
-	&pcidma_attr[11].attr,
+	&pcidma_attributes[0].attr,
+	&pcidma_attributes[1].attr,
+	&pcidma_attributes[2].attr,
+	&pcidma_attributes[3].attr,
+	&pcidma_attributes[4].attr,
+	&pcidma_attributes[5].attr,
+	&pcidma_attributes[6].attr,
+	&pcidma_attributes[7].attr,
+	&pcidma_attributes[8].attr,
+	&pcidma_attributes[9].attr,
+	&pcidma_attributes[10].attr,
+	&pcidma_attributes[11].attr,
 	NULL,
 };
 
 ATTRIBUTE_GROUPS(pcidma);
+#endif
 
 static struct class pcidma_class = {
 	.name = "pcidma",
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3,11,0)
 	.dev_groups = pcidma_groups,
+#else
+	.dev_attrs = pcidma_attributes,
+#endif
 	.dev_release = pcidma_dev_release,
 	.class_release = pcidma_class_release,
 };

@@ -404,7 +404,7 @@ test_length_show(struct device *dev, struct device_attribute *attr, char *buf)
 	return str - buf;
 }
 
-struct device_attribute pcidma_attr[] = {
+struct device_attribute pcidma_attributes[] = {
 	__ATTR_RO(link_info),
 	__ATTR_RO(bars_info),
 	__ATTR_RO(config_info),
