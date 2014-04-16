@@ -24,3 +24,6 @@ HIGH_PERF_MODE=y
 
 #Specify building host-driver to support Virtualization
 VIRTIO_C2X0=n
+
+#Specify whether build cryptoapi pkc-related into host driver on x86
+EXTRA_PKC=n
