@@ -32,9 +32,37 @@
 # (INCLUDING NEGLIGENCE OR OTHERWISE)ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #
-TOPDIR ?= $(shell pwd)
-export TOPDIR
-include $(TOPDIR)/config.mk
+#Device configurations
+
+#Specifies type of EP
+P4080_EP=n
+C293_EP=y
+
+#Controls the debug print level
+DEBUG_PRINT=n
+ERROR_PRINT=y
+INFO_PRINT=n
+
+#Enable HASH/SYMMETRIC offloading
+CONFIG_FSL_C2X0_HASH_OFFLOAD=n
+CONFIG_FSL_C2X0_SYMMETRIC_OFFLOAD=n
+
+#Enable RNG offloading
+RNG_OFFLOAD=n
+
+#Specifies whether host DMA support to be enabled /disabled in the driver
+USE_HOST_DMA=n
+
+#Specifies whether driver/firmware is running high performance mode
+HIGH_PERF_MODE=y
+
+#Specify building host-driver to support Virtualization
+VIRTIO_C2X0=n
+
+#Specify whether build cryptoapi pkc-related into host driver on x86
+EXTRA_PKC=n
+
+KERNEL_DIR ?=/lib/modules/$(shell uname -r)/build
 
 ifeq ("$(ARCH)","powerpc")
 P4080_BUILD=y
@@ -81,7 +109,6 @@ endif
 
 ifeq ($(X86_BUILD),y)
 EXTRA_CFLAGS += -DX86_BUILD
-KERNEL_DIR ?=/lib/modules/$(shell uname -r)/build
 endif
 
 ifeq ($(P4080_EP),y)
@@ -126,9 +153,8 @@ ifeq ($(USE_HOST_DMA), y)
 EXTRA_CFLAGS += -DUSE_HOST_DMA
 endif
 
-EXTRA_CFLAGS += -I$(TOPDIR)/host_driver -I$(TOPDIR)/algs -I$(TOPDIR)/crypto_dev -I$(TOPDIR)/dcl -I$(TOPDIR)/test
+EXTRA_CFLAGS += -I$(src)/host_driver -I$(src)/algs -I$(src)/crypto_dev -I$(src)/dcl -I$(src)/test
 
-DRIVER_PATH = $(TOPDIR)
 DRIVER_KOBJ = "fsl_skmm_crypto_offload_drv"
 RSA_TEST_KOBJ = "rsa_test"
 DSA_TEST_KOBJ = "dsa_test"
@@ -137,7 +163,7 @@ DH_TEST_KOBJ = "dh_test"
 ECDH_TEST_KOBJ = "ecdh_test"
 PCI_DMA_TEST_KOBJ = "pci_dma_test"
 
-CONFIG_FSL_C2X0_CRYPTO_DRV=m
+CONFIG_FSL_C2X0_CRYPTO_DRV ?= m
 
 obj-$(CONFIG_FSL_C2X0_CRYPTO_DRV) = $(DRIVER_KOBJ).o
 obj-m += $(PCI_DMA_TEST_KOBJ).o
