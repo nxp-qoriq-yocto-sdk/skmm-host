@@ -187,7 +187,7 @@ build:
 modules_install:
 	make -C $(KERNEL_DIR) SUBDIRS=`pwd` modules_install
 	@install -D crypto.cfg $(PREFIX)/etc/skmm/skmm_crypto.cfg
-	@install -D perf/c29x_driver_perf_profile.sh $(PREFIX)/etc/skmm/c29x_driver_perf_profile.sh
+	@install -D perf/c29x_driver_perf_profile.sh $(PREFIX)/usr/bin/c29x_driver_perf_profile.sh
 
 clean:
 	make -C $(KERNEL_DIR) SUBDIRS=`pwd` clean
