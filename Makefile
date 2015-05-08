@@ -183,14 +183,10 @@ $(PCI_DMA_TEST_KOBJ)-objs += pci_dma_test/pci_dma_test.o
 
 build:
 	make -C $(KERNEL_DIR) SUBDIRS=`pwd` modules
-ifeq ($(X86_BUILD),y)
-	$(CROSS_COMPILE)gcc  -Wall perf/mini_calc/mini_calc.c -o perf/mini_calc/mini_calc -static
-endif
 
 modules_install:
 	make -C $(KERNEL_DIR) SUBDIRS=`pwd` modules_install
 	@install -D crypto.cfg $(PREFIX)/etc/skmm/skmm_crypto.cfg
-	@install -D perf/mini_calc/mini_calc $(PREFIX)/usr/bin/mini_calc
 	@install -D perf/c29x_driver_perf_profile.sh $(PREFIX)/etc/skmm/c29x_driver_perf_profile.sh
 
 clean:
