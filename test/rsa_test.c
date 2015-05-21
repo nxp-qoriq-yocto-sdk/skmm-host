@@ -292,12 +292,12 @@ void rsa_op_done(struct pkc_request *req, int32_t sec_result)
 		case RSA_PRIV_FORM3:
 #ifndef PERF_TEST
 			for (i = 0; i < req->req_u.rsa_priv_f3.f_len; i++) {
-				if (req->req_u.rsa_priv_f3.f[i] ==
-				    (uint8_t) PUB_F_1024[i]) {
+				if (req->req_u.rsa_priv_f3.f[i] !=
+				    (uint8_t) PRV3_F_1024[i]) {
 					print_error
 					    ("Wrong byte [%0x] orig [%0x] index [%d]\n",
 					     req->req_u.rsa_priv_f3.f[i],
-					     (uint8_t) PUB_F_1024[i], i);
+					     (uint8_t) PRV3_F_1024[i], i);
 				}
 
 			}
@@ -309,11 +309,11 @@ void rsa_op_done(struct pkc_request *req, int32_t sec_result)
 #ifndef PERF_TEST
 			for (i = 0; i < req->req_u.rsa_priv_f2.f_len; i++) {
 				if (req->req_u.rsa_priv_f2.f[i] !=
-				    (uint8_t) PUB_F_1024[i]) {
+				    (uint8_t) PRV2_F_1024[i]) {
 					print_error
 					    ("Wrong byte [%0x] orig [%0x] index [%d]\n",
 					     req->req_u.rsa_priv_f2.f[i],
-					     (uint8_t) PUB_F_1024[i], i);
+					     (uint8_t) PRV2_F_1024[i], i);
 				}
 			}
 #endif
