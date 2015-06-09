@@ -713,8 +713,6 @@ int dsa_sign_verify_sign_test(struct pkc_request *req)
 	memcpy(req->req_u.dsa_sign.g, G_4096, g_len_4096);
 	req->req_u.dsa_sign.g_len = (g_len_4096);
 
-//	req->req_u.dsa_sign.priv_key_len = (priv_key_len);
-
 	req->req_u.dsa_sign.m = kzalloc(m_len_4096, GFP_DMA);
 	memcpy(req->req_u.dsa_sign.m, M_4096, m_len_4096);
 	req->req_u.dsa_sign.m_len = (m_len_4096);
