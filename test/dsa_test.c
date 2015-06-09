@@ -695,8 +695,9 @@ int dsa_sign_verify_verify_test(struct pkc_request *ireq)
 	return ret;
 }
 
-int dsa_sign_verify_sign_test(struct pkc_request *req)
+int dsa_sign_verify_test(void)
 {
+	struct pkc_request *req = kzalloc(sizeof(struct pkc_request), GFP_DMA);
 	int ret = 0;
 
 	req->type = DSA_SIGN;
@@ -731,12 +732,4 @@ int dsa_sign_verify_sign_test(struct pkc_request *req)
 	}
 
 	return ret;
-}
-
-int dsa_sign_verify_test(void)
-{
-	struct pkc_request *req =
-	    kzalloc(sizeof(struct pkc_request), GFP_DMA);
-
-	return dsa_sign_verify_sign_test(req);
 }

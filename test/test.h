@@ -48,7 +48,6 @@ extern int dsa_verify_test_2k(void);
 extern int dsa_sign_test_2k(void);
 extern int dsa_verify_test_4k(void);
 extern int dsa_sign_test_4k(void);
-extern int dsa_sign_verify_sign_test(struct pkc_request *req);
 extern int dsa_sign_verify_verify_test(struct pkc_request *req);
 extern int dsa_sign_verify_test(void);
 extern int dsa_keygen_test(void);
