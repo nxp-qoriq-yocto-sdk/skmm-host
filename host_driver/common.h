@@ -280,7 +280,7 @@ Fields      :	dev_no    : Number of the device to which this config applies.
 typedef struct crypto_dev_config {
 	uint32_t dev_no;
 /*  int8_t      *name;  We may not need this field  */
-#define FIRMWARE_FILE_DEFAULT_PATH  "/etc/crypto/u-boot-sd.bin"
+#define FIRMWARE_FILE_DEFAULT_PATH  "/etc/skmm/u-boot-sd.bin"
 #define FIRMWARE_FILE_PATH_LEN  100
 	uint8_t fw_file_path[FIRMWARE_FILE_PATH_LEN];
 

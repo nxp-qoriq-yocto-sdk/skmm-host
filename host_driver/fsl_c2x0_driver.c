@@ -82,7 +82,7 @@ static void fsl_crypto_pci_remove(struct pci_dev *dev);
 /*********************************************************
  *        GLOBAL VARIABLES                               *
  *********************************************************/
-static char *dev_config_file = "/etc/crypto/crypto.cfg";
+static char *dev_config_file = "/etc/skmm/skmm_crypto.cfg";
 int napi_poll_count = -1;
 
 static uint8_t pci_driver_registered;
