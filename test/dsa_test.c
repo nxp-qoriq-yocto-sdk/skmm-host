@@ -699,6 +699,7 @@ int dsa_sign_verify_verify_test(struct pkc_request *ireq)
 	ret = test_dsa_op(req, dsa_sign_verify_verify_done);
 
 	if (-1 == ret) {
+		atomic_dec(&total_enq_cnt);
 		kfree(req->req_u.dsa_verify.q);
 		kfree(req->req_u.dsa_verify.r);
 		kfree(req->req_u.dsa_verify.g);

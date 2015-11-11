@@ -130,3 +130,4 @@ extern void init_all_test(void);
 extern void clean_all_test(void);
 /* extern void check_test_done(void); */
 extern atomic_t total_deq_cnt;
+extern atomic_t total_enq_cnt;
