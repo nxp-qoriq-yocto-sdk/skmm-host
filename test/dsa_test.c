@@ -84,6 +84,10 @@ void dsa_keygen_done(struct pkc_request *req, int32_t sec_result)
 void dsa_sign_verify_sign_done(struct pkc_request *req, int32_t sec_result)
 {
 	dsa_sign_verify_verify_test(req);
+	kfree(req->req_u.dsa_sign.q);
+	kfree(req->req_u.dsa_sign.r);
+	kfree(req->req_u.dsa_sign.g);
+	kfree(req->req_u.dsa_sign.m);
 	kfree(req->req_u.dsa_sign.c);
 	kfree(req->req_u.dsa_sign.d);
 	kfree(req);
@@ -91,6 +95,11 @@ void dsa_sign_verify_sign_done(struct pkc_request *req, int32_t sec_result)
 
 void dsa_sign_verify_verify_done(struct pkc_request *req, int32_t sec_result)
 {
+	kfree(req->req_u.dsa_verify.q);
+	kfree(req->req_u.dsa_verify.r);
+	kfree(req->req_u.dsa_verify.g);
+	kfree(req->req_u.dsa_verify.pub_key);
+	kfree(req->req_u.dsa_verify.m);
 	kfree(req->req_u.dsa_verify.c);
 	kfree(req->req_u.dsa_verify.d);
 	kfree(req);
@@ -689,8 +698,16 @@ int dsa_sign_verify_verify_test(struct pkc_request *ireq)
 
 	ret = test_dsa_op(req, dsa_sign_verify_verify_done);
 
-	if (-1 == ret)
+	if (-1 == ret) {
+		kfree(req->req_u.dsa_verify.q);
+		kfree(req->req_u.dsa_verify.r);
+		kfree(req->req_u.dsa_verify.g);
+		kfree(req->req_u.dsa_verify.pub_key);
+		kfree(req->req_u.dsa_verify.m);
+		kfree(req->req_u.dsa_verify.c);
+		kfree(req->req_u.dsa_verify.d);
 		kfree(req);
+	}
 
 	return ret;
 }
@@ -726,6 +743,10 @@ int dsa_sign_verify_test(void)
 	ret = test_dsa_op(req, dsa_sign_verify_sign_done);
 
 	if (-1 == ret) {
+		kfree(req->req_u.dsa_sign.q);
+		kfree(req->req_u.dsa_sign.r);
+		kfree(req->req_u.dsa_sign.g);
+		kfree(req->req_u.dsa_sign.m);
 		kfree(req->req_u.dsa_sign.c);
 		kfree(req->req_u.dsa_sign.d);
 		kfree(req);
