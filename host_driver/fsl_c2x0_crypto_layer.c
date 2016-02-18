@@ -1981,7 +1981,7 @@ void process_virtio_job_response(struct virtio_c2x0_job_ctx *virtio_job)
 				buf = sg_virt(sg);
 				kfree(buf);
 
-				sg = scatterwalk_sg_next(sg);
+				sg = sg_next(sg);
 				buf = NULL;
 			}
 			kfree(virtio_job->ctx->req.ahash->src);
@@ -2023,7 +2023,7 @@ void process_virtio_job_response(struct virtio_c2x0_job_ctx *virtio_job)
 				buf = sg_virt(sg);
 				kfree(buf);
 
-				sg = scatterwalk_sg_next(sg);
+				sg = sg_next(sg);
 				buf = NULL;
 			}
 			kfree(virtio_job->ctx->req.ahash->src);
@@ -2083,7 +2083,7 @@ void process_virtio_job_response(struct virtio_c2x0_job_ctx *virtio_job)
 				buf = sg_virt(sg);
 				kfree(buf);
 
-				sg = scatterwalk_sg_next(sg);
+				sg = sg_next(sg);
 				buf = NULL;
 			}
 			kfree(virtio_job->ctx->req.ahash->src);
@@ -2122,7 +2122,7 @@ void process_virtio_job_response(struct virtio_c2x0_job_ctx *virtio_job)
 					"ouput copy_to_user = %d\n",
 					virtio_job->qemu_cmd.op, ret);
 
-				sg = scatterwalk_sg_next(sg);
+				sg = sg_next(sg);
 				kfree(buf);
 				buf = NULL;
 			}
@@ -2135,7 +2135,7 @@ void process_virtio_job_response(struct virtio_c2x0_job_ctx *virtio_job)
 				buf = sg_virt(sg);
 				kfree(buf);
 
-				sg = scatterwalk_sg_next(sg);
+				sg = sg_next(sg);
 				buf = NULL;
 			}
 

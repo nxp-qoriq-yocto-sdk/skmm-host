@@ -150,7 +150,7 @@ static inline int sg_to_sec4_sg(struct scatterlist *sg, int sg_count,
 		if (ret == -1)
 			return ret;
 		sec4_sg_ptr++;
-		sg = scatterwalk_sg_next(sg);
+		sg = sg_next(sg);
 		sg_count--;
 	}
 	return ret;
@@ -198,7 +198,7 @@ static inline void pci_sg_to_sec4_sg(struct scatterlist *sg, int sg_count,
 		dma_to_sec4_sg_one(sec4_sg_ptr, sg_dma_address(sg),
 				   sg_dma_len(sg), offset, sg_count, c_dev);
 		sec4_sg_ptr++;
-		sg = scatterwalk_sg_next(sg);
+		sg = sg_next(sg);
 		sg_count--;
 	}
 }
@@ -235,7 +235,7 @@ static inline struct sec4_sg_entry *dev_sg_to_sec4_sg(struct scatterlist *sg,
 				       c_dev->mem[MEM_TYPE_DRIVER].dev_p_addr,
 				       sg_dma_len(sg), offset);
 		sec4_sg_ptr++;
-		sg = scatterwalk_sg_next(sg);
+		sg = sg_next(sg);
 		sg_count--;
 	}
 	return sec4_sg_ptr - 1;
@@ -267,7 +267,7 @@ static inline int __sg_count(struct scatterlist *sg_list, int nbytes,
 		nbytes -= sg->length;
 		if (!sg_is_last(sg) && (sg + 1)->length == 0)
 			*chained = true;
-		sg = scatterwalk_sg_next(sg);
+		sg = sg_next(sg);
 	}
 
 	return sg_nents;
@@ -296,7 +296,7 @@ static inline int pci_map_sg_chained(struct pci_dev *dev,
 			ret = pci_map_sg(dev, sg, 1, dir);
 			if (0 == ret)
 				return 0;
-			sg = scatterwalk_sg_next(sg);
+			sg = sg_next(sg);
 		}
 	} else {
 		ret = pci_map_sg(dev, sg, nents, dir);
@@ -317,7 +317,7 @@ static inline int pci_unmap_sg_chained(struct pci_dev *dev,
 		for (i = 0; i < nents; i++) {
 			if (sg_dma_address(sg) != 0)
 				pci_unmap_sg(dev, sg, 1, dir);
-			sg = scatterwalk_sg_next(sg);
+			sg = sg_next(sg);
 		}
 	} else {
 #if 0
@@ -327,7 +327,7 @@ static inline int pci_unmap_sg_chained(struct pci_dev *dev,
 		for (i = 0; i < nents; i++) {
 			if (sg_dma_address(sg) != 0)
 				pci_unmap_sg(dev, sg, 1, dir);
-			sg = scatterwalk_sg_next(sg);
+			sg = sg_next(sg);
 		}
 #endif
 	}
@@ -342,7 +342,7 @@ static inline int dma_map_sg_chained(struct device *dev, struct scatterlist *sg,
 		int i;
 		for (i = 0; i < nents; i++) {
 			dma_map_sg(dev, sg, 1, dir);
-			sg = scatterwalk_sg_next(sg);
+			sg = sg_next(sg);
 		}
 	} else {
 		dma_map_sg(dev, sg, nents, dir);
@@ -360,7 +360,7 @@ static inline int dma_unmap_sg_chained(struct device *dev,
 		int i;
 		for (i = 0; i < nents; i++) {
 			dma_unmap_sg(dev, sg, 1, dir);
-			sg = scatterwalk_sg_next(sg);
+			sg = sg_next(sg);
 		}
 	} else {
 		dma_unmap_sg(dev, sg, nents, dir);

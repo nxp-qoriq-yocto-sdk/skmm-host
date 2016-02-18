@@ -324,7 +324,7 @@ static void create_src_sg_table(symm_ablk_buffers_t *ablk_ctx,
 		ASSIGN16(sec4_sg_ptr->offset, 0);
 		sec4_sg_ptr++;
 
-		sg = scatterwalk_sg_next(sg);
+		sg = sg_next(sg);
 	}
 
 	sec4_sg_ptr--;
@@ -352,7 +352,7 @@ static void create_dst_sg_table(fsl_crypto_dev_t *c_dev,
 		ASSIGN16(sec4_sg_ptr->offset, 0);
 		sec4_sg_ptr++;
 
-		sg = scatterwalk_sg_next(sg);
+		sg = sg_next(sg);
 	}
 
 	sec4_sg_ptr--;
@@ -365,7 +365,7 @@ static void fill_sg_len(symm_ablk_buffers_t *ablk_ctx, struct scatterlist *sg,
 	uint32_t i = 0;
 	while (sg_cnt--) {
 		ablk_ctx->src_sg[i++].len = sg->length;
-		sg = scatterwalk_sg_next(sg);
+		sg = sg_next(sg);
 	}
 }
 
