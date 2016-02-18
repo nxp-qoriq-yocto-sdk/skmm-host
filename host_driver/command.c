@@ -149,7 +149,7 @@ void set_device(int8_t *fname, int8_t *device, int32_t size, char flag)
 	unsigned long dev_no;
 
 	print_debug("INSIDE DEVICE SET FUNCTION\n");
-	if (strict_strtol(device, 0, &dev_no)) {
+	if (kstrtol(device, 0, &dev_no)) {
 		print_error("INVALID DEVICE VALUE\n");
 		return;
 	}
